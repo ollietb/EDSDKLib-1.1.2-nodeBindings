@@ -29,44 +29,11 @@ namespace NodeBindings
         static Camera MainCamera;
         static CanonAPI Api;
         static AutoResetEvent Waiter = new AutoResetEvent(false);
+        static AutoResetEvent LiveViewWaiter = new AutoResetEvent(false);
         static string ImageSaveDirectory;
         static string LastImageFileName;
 
         static MemoryStream PreviewBuffer;//buffer for preview images
-
-        public async Task<object> TakePhoto(dynamic input)
-        {
-            var result = new NodeResult();
-            try
-            {
-                MainCamera.SaveTo = SaveTo.Host;
-                MainCamera.DownloadReady += MainCamera_DownloadReady;
-
-                await MainCamera.SetCapacity(4096, 999999999);
-
-                if (MainCamera.IsShutterButtonAvailable)
-                {
-                    await MainCamera.TakePhoto();
-                   // await MainCamera.SC_PressShutterButton(ShutterButton.Completely);
-                   // await MainCamera.SC_PressShutterButton(ShutterButton.OFF);
-                    
-                }
-                else await MainCamera.SC_TakePicture();
-
-                Console.WriteLine("Waiting for download...");
-                Waiter.WaitOne();
-
-                result.message = "Took photo";
-                result.success = true;
-            }
-            catch(Exception ex) {
-                result.message = ex.Message;
-                result.success = false;
-            }
-
-           
-            return result;
-        }
 
         public async Task<object> SetOutputPath(dynamic input)
         {
@@ -95,11 +62,10 @@ namespace NodeBindings
 
             try
             {
-                MainCamera.LiveViewUpdated += MainCamera_LiveViewUpdated;
                 MainCamera.StartLiveView();
 
                 Console.WriteLine("Waiting for first live view...");
-                Waiter.WaitOne();
+                LiveViewWaiter.WaitOne();
 
                 result.message = "Starting LiveView";
                 result.success = true;
@@ -130,43 +96,50 @@ namespace NodeBindings
             return result;
         }
 
-        private void MainCamera_LiveViewUpdated(Camera sender, Stream img)
+        public async Task<object> TakePhoto(dynamic input)
         {
-            PreviewImageResult result = new PreviewImageResult();
-            Console.WriteLine("LiveView updated");
-
+            var result = new NodeResult();
+            bool shouldRestartLiveView = false;
             try
             {
-                
-                using (WrapStream s = new WrapStream(img))
-                {
-                    img.Position = 0;
-                    BitmapImage EvfImage = new BitmapImage();
-                    EvfImage.BeginInit();
-                    EvfImage.StreamSource = s;
-                    EvfImage.CacheOption = BitmapCacheOption.OnLoad;
-                    EvfImage.EndInit();
-                    EvfImage.Freeze();
-                    
-                    JpegBitmapEncoder encoder = new JpegBitmapEncoder();
-                    String photolocation = ImageSaveDirectory + "/livePreview.jpg";  //file name 
-                    encoder.Frames.Add(BitmapFrame.Create((BitmapImage)EvfImage));
-                    PreviewBuffer = new MemoryStream();
-                    using (PreviewBuffer)
-                        encoder.Save(PreviewBuffer);
+                MainCamera.SaveTo = SaveTo.Host;
+
+
+                if (MainCamera.IsLiveViewOn) {
+                    shouldRestartLiveView = true;
+                    MainCamera.StopLiveView();
                 }
-                
+
+                await MainCamera.SetCapacity(4096, 999999999);
+
+                await MainCamera.TakePhoto();
+//                if (MainCamera.IsShutterButtonAvailable)
+//                {
+//                   // await MainCamera.SC_PressShutterButton(ShutterButton.Completely);
+//                   // await MainCamera.SC_PressShutterButton(ShutterButton.OFF);
+//
+//                }
+//                else await MainCamera.SC_TakePicture();
+
+                Console.WriteLine("Waiting for download...");
+                Waiter.WaitOne();
+
+                result.message = "Took photo";
+                result.success = true;
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Error: " + ex.Message);
-                result.message = "Error: " + ex.Message;
+            catch(Exception ex) {
+                result.message = ex.Message;
                 result.success = false;
             }
             finally
             {
-                Waiter.Set();
+                if (shouldRestartLiveView) {
+                    MainCamera.StartLiveView();
+                }
             }
+
+
+            return result;
         }
 
         public async Task<object> StartVideo(dynamic input)
@@ -214,7 +187,6 @@ namespace NodeBindings
             
             try
             {
-
                 Waiter = new AutoResetEvent(false);
                 Console.WriteLine("Called C# method from node.");
                 if (Api == null )
@@ -230,10 +202,7 @@ namespace NodeBindings
 
                 if (cameras.Count > 0)
                 {
-                    MainCamera = cameras[0];
-                    MainCamera.DownloadReady += MainCamera_DownloadReady;
-                    MainCamera.OpenSession();
-                    Console.WriteLine($"Opened session with camera: {MainCamera.DeviceName}");
+                    OpenSession(cameras[0]);
                 }
                 else
                 {
@@ -301,18 +270,18 @@ namespace NodeBindings
             try
             {
                 Console.WriteLine("Camera added event received");
-                if (!OpenSession()) { Console.WriteLine("Sorry, something went wrong. No camera");}
+                if (!RetrySession()) { Console.WriteLine("Sorry, something went wrong. No camera");}
             }
             catch (Exception ex) { Console.WriteLine("Error: " + ex.Message);}
             finally { Waiter.Set(); }
         }
 
-        private static void MainCamera_DownloadReady(Camera sender, DownloadInfo Info)
+        private static async void MainCamera_DownloadReady(Camera sender, DownloadInfo Info)
         {
             try
             {
                 Console.WriteLine("Starting image download...::"+Info.FileName);
-                sender.DownloadFile(Info, ImageSaveDirectory);
+                await sender.DownloadFile(Info, ImageSaveDirectory);
                 Console.WriteLine("Image downloading to " + Info.FileName);
                 LastImageFileName = Info.FileName;
             }
@@ -320,20 +289,65 @@ namespace NodeBindings
             finally { Waiter.Set(); }
         }
 
-        public static bool OpenSession()
+        private static void OpenSession(Camera camera)
+        {
+            Console.WriteLine($"Opening session with camera: {camera.DeviceName}");
+            MainCamera = camera;
+            MainCamera.DownloadReady += MainCamera_DownloadReady;
+            MainCamera.LiveViewUpdated += MainCamera_LiveViewUpdated;
+            MainCamera.OpenSession();
+            Console.WriteLine($"Opened session with camera: {MainCamera.DeviceName}");
+        }
+
+        public static bool RetrySession()
         {
             Console.WriteLine($"Opening session with camera: {MainCamera.DeviceName}");
 
             List<Camera> cameras = Api.GetCameraList();
             if (cameras.Count > 0)
             {
-                MainCamera = cameras[0];
-                MainCamera.DownloadReady += MainCamera_DownloadReady;
-                MainCamera.OpenSession();
-                Console.WriteLine($"Opened session with camera: {MainCamera.DeviceName}");
+                OpenSession(cameras[0]);
                 return true;
             }
             else return false;
         }
-    }
+
+        private static void MainCamera_LiveViewUpdated(Camera sender, Stream img)
+        {
+            PreviewImageResult result = new PreviewImageResult();
+            Console.WriteLine("LiveView updated");
+
+            try
+            {
+                using (WrapStream s = new WrapStream(img))
+                {
+                    img.Position = 0;
+                    BitmapImage EvfImage = new BitmapImage();
+                    EvfImage.BeginInit();
+                    EvfImage.StreamSource = s;
+                    EvfImage.CacheOption = BitmapCacheOption.OnLoad;
+                    EvfImage.EndInit();
+                    EvfImage.Freeze();
+
+                    JpegBitmapEncoder encoder = new JpegBitmapEncoder();
+                    String photolocation = ImageSaveDirectory + "/livePreview.jpg";  //file name
+                    encoder.Frames.Add(BitmapFrame.Create((BitmapImage)EvfImage));
+                    PreviewBuffer = new MemoryStream();
+                    using (PreviewBuffer)
+                        encoder.Save(PreviewBuffer);
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error: " + ex.Message);
+                result.message = "Error: " + ex.Message;
+                result.success = false;
+            }
+            finally
+            {
+                LiveViewWaiter.Set();
+            }
+        }
+}
 }
