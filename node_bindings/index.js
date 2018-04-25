@@ -1,84 +1,66 @@
 const path = require('path');
 const edge = require('edge');
 
-const assemblyFile = path.join(__dirname, '../NodeBindings/bin/Debug/Nodebindings.dll');
+const assemblyFile = path.join(__dirname, '../NodeBindings/bin/Debug/NodeBindings.dll');
 const className = 'NodeBindings.Program';
 
-const bindMethodSignature = function(methodName){
+const bindMethodSignature = function(methodName) {
     return edge.func({
         assemblyFile: assemblyFile,
         typeName: className,
         methodName: methodName // This must be Func<object,Task<object>>
     });
-}
+};
 
-const resultHandler = function(error, result) {
-    if (!error) {
-        if (result.success) {
-            console.log("Callback on success:" + result.message);
-        } else {
-            console.log("ERROR:" + result.message);
-        }
-    } else {
-        console.log("ERROR:" + error.message);
-    }
-}
+/**
+ * @param {string} methodName
+ * @return {function(*=): Promise}
+ */
+const bindPromisify = function(methodName) {
+    const func = bindMethodSignature(methodName);
 
-const previewImageResultHandler = function(error, result) {
-    if (!error) {
-        if (result.success) {
-            console.log("Callback on success:result.bitmap"); //+ result.bitmap);//Bitmap from livepreview is available here
-        } else {
-            console.log("ERROR:" + result.message);
-        }
-    } else {
-        console.log("ERROR:" + error.message);
-    }
-}
+    return (opts = {}) => {
+        return new Promise((resolve, reject) => {
+            func(opts, (error, result) => {
+                if (error) {
+                    console.log(`ERROR: ${error.message}`, error);
+                    reject(error);
+                    return;
+                }
 
+                if (result && result.success) {
+                    console.log(`Callback on success result: ${result.message}`, result);
+                } else {
+                    console.log(`Callback on failure result: ${result.message}`, result);
+                }
+                resolve(result);
+            });
+        });
+    };
+};
 
+const setOutputPath = bindPromisify('SetOutputPath');
+const takePhoto = bindPromisify('TakePhoto');
+const beginSession = bindPromisify('BeginSession');
+const endSession = bindPromisify('EndSession');
+const startLiveView = bindPromisify('StartLiveView');
+const stopLiveView = bindPromisify('StopLiveView');
+const startVideo = bindPromisify('StartVideo');
+const stopVideo = bindPromisify('StopVideo');
+const getLastDownloadedImageFilename = bindPromisify('GetLastDownloadedImageFilename');
+const getPreviewImage = bindPromisify('GetPreviewImage');
+const callCameraMethod = bindPromisify('CallCameraMethod');
 
-const setOutputPath = bindMethodSignature('SetOutputPath');
-const takePhoto = bindMethodSignature('TakePhoto');
-const beginSession = bindMethodSignature('BeginSession');
-const endSession = bindMethodSignature('EndSession');
-
-const startLiveView = bindMethodSignature('StartLiveView');
-const stopLiveView = bindMethodSignature('StopLiveView');
-const getLastDownloadedImageFilename = bindMethodSignature('GetLastDownloadedImageFilename');
-const startVideo = bindMethodSignature('StartVideo');
-const stopVideo = bindMethodSignature('StopVideo');
-const getPreviewImage = bindMethodSignature('GetPreviewImage');
-
-beginSession( {} ,resultHandler);
-setOutputPath( {outputPath: 'C:\\pictures'}, resultHandler);//Sets the location to save videos and photos.
-
-
-const previewImage = function(){
-    getPreviewImage({}, previewImageResultHandler);
-}
-
-let previewIntervalId;
-
-const takeStillPhoto = function() {
-    takePhoto({}, resultHandler);
-    getLastDownloadedImageFilename({},resultHandler);
-}
-
-const record=function() {
-    startVideo({}, resultHandler);
-    previewIntervalId = setInterval(previewImage,90);
-    setTimeout(finishRecord,4000);
-}
-
-const finishRecord=function() {
-    stopVideo({}, resultHandler);
-    getLastDownloadedImageFilename({},resultHandler);
-    clearInterval(previewIntervalId);
-    endSession({}, resultHandler)
-}
-
-//startLiveView( {} ,resultHandler);//This must be called before recording video.
-setTimeout(takeStillPhoto,500);
-//setTimeout(record,500);
-
+module.exports = {
+    setOutputPath,
+    takePhoto,
+    beginSession,
+    endSession,
+    startLiveView,
+    stopLiveView,
+    startVideo,
+    stopVideo,
+    getLastDownloadedImageFilename,
+    getPreviewImage,
+    callCameraMethod,
+};

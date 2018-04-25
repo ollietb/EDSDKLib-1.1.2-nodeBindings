@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mock</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="container">
+        <div class="preview-wrapper">
+            <h2>Preview</h2>
+            <canvas id="preview" width="960" height="540"></canvas>
+        </div>
+        <div class="controls-wrapper">
+            <button onclick="startPreview();">Start Preview</button>
+            <button onclick="stopPreview();">Stop Preview</button>
+            <button onclick="capturePhoto();">Capture Photo</button>
+            <button onclick="startVideo();">Start Video</button>
+            <button onclick="stopVideo();">Stop Video</button>
+        </div>
+        <div class="photos-wrapper">
+            <h2>Photos</h2>
+            <div id="photos"></div>
+        </div>
+    </div>
+    <script src="http://localhost:9003/socket.io/socket.io.js"></script>
+    <script src="client.js"></script>
+    <script>
+        socket.emit('initCamera');
+    </script>
+</body>
+</html>

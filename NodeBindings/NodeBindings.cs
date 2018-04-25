@@ -24,6 +24,13 @@ namespace NodeBindings
         public bool success = false;
     }
 
+    public class MediaResult
+    {
+        public string message = "MediaResult: Empty message";
+        public string path = null;
+        public bool success = false;
+    }
+
     class Program
     {
         static Camera MainCamera;
@@ -31,27 +38,28 @@ namespace NodeBindings
         static AutoResetEvent Waiter = new AutoResetEvent(false);
         static AutoResetEvent LiveViewWaiter = new AutoResetEvent(false);
         static AutoResetEvent TakePhotoWaiter = new AutoResetEvent(false);
-        static string ImageSaveDirectory;
+        static string SaveDirectory;
         static string LastImageFileName;
         static bool TakePhotoSuccess = false;
 
-        static MemoryStream PreviewBuffer;//buffer for preview images
+        //buffer for preview images
+        static MemoryStream PreviewBuffer;
 
         public async Task<object> SetOutputPath(dynamic input)
         {
             var result = new NodeResult(); 
             try
             {
-                Console.WriteLine("Attempting to set ImageSaveDirectory to " + (string)input.outputPath);
-                ImageSaveDirectory = (string)input.outputPath;
-                result.message = "Set ImageSaveDirectory to " + (string)input.outputPath;
+                Console.WriteLine("Attempting to set SaveDirectory to " + (string)input.outputPath);
+                SaveDirectory = (string)input.outputPath;
+                result.message = "Set SaveDirectory to " + (string)input.outputPath;
                 result.success = true;
             }
             catch (Exception ex){
                 //Can't use requested path, resetting to default
-                ImageSaveDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "RemotePhoto");
+                SaveDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "RemotePhoto");
                 Console.WriteLine(ex.Message.ToString());
-                Console.WriteLine("Can't use requested path, resetting to default:" + ImageSaveDirectory.ToString());
+                Console.WriteLine("Can't use requested path, resetting to default:" + SaveDirectory.ToString());
                 result.message = ex.Message.ToString();
                 result.success = false;
             }
@@ -100,7 +108,7 @@ namespace NodeBindings
 
         public async Task<object> TakePhoto(dynamic input)
         {
-            var result = new NodeResult();
+            var result = new MediaResult();
             var maxTries = 5;
             var tries = 0;
             bool shouldRestartLiveView = false;
@@ -136,7 +144,8 @@ namespace NodeBindings
                     }
                 }
 
-                result.message = "Took photo";
+                result.message = "Photo taken";
+                result.path = Path.Combine(SaveDirectory, LastImageFileName);
                 result.success = true;
             }
             catch(Exception ex) {
@@ -159,7 +168,7 @@ namespace NodeBindings
             try
             {
                 Console.WriteLine("Starting image download...::"+Info.FileName);
-                await sender.DownloadFile(Info, ImageSaveDirectory);
+                await sender.DownloadFile(Info, SaveDirectory);
                 Console.WriteLine("Image downloading to " + Info.FileName);
                 LastImageFileName = Info.FileName;
                 TakePhotoSuccess = true;
@@ -202,14 +211,16 @@ namespace NodeBindings
 
         public async Task<object> StopVideo(dynamic input)
         {
-            var result = new NodeResult();
+            var result = new MediaResult();
             try
             {
                 //Method work goes here...
                 bool save = true;//s (bool)STComputerRdButton.IsChecked || (bool)STBothRdButton.IsChecked;
                 MainCamera.StopFilming(save);
+                TakePhotoWaiter.WaitOne();
 
                 result.message = "Stopped recording video.";
+                result.path = Path.Combine(SaveDirectory, LastImageFileName);
                 result.success = true;
             }
             catch (Exception ex)
@@ -337,6 +348,8 @@ namespace NodeBindings
         {
             Console.WriteLine($"Opening session with camera: {camera.DeviceName}");
             MainCamera = camera;
+            // TODO: Use individual lambda expressions for each action
+            // https://stackoverflow.com/questions/2465040/using-lambda-expressions-for-event-handlers
             MainCamera.DownloadReady += MainCamera_DownloadReady;
             MainCamera.LiveViewUpdated += MainCamera_LiveViewUpdated;
             MainCamera.StateChanged += MainCamera_StateChanged;
@@ -375,7 +388,6 @@ namespace NodeBindings
                     EvfImage.Freeze();
 
                     JpegBitmapEncoder encoder = new JpegBitmapEncoder();
-                    String photolocation = ImageSaveDirectory + "/livePreview.jpg";  //file name
                     encoder.Frames.Add(BitmapFrame.Create((BitmapImage)EvfImage));
                     PreviewBuffer = new MemoryStream();
                     using (PreviewBuffer)
