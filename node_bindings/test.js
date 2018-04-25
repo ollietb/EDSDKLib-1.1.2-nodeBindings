@@ -50,6 +50,7 @@ const startVideo = bindPromisify('StartVideo');
 const stopVideo = bindPromisify('StopVideo');
 const getLastDownloadedImageFilename = bindPromisify('GetLastDownloadedImageFilename');
 const getPreviewImage = bindPromisify('GetPreviewImage');
+const callCameraMethod = bindPromisify('CallCameraMethod');
 
 const benchmark = (message, promiseOrFunction) => {
     const ss = Date.now();
@@ -84,12 +85,19 @@ const outputPath = 'C:\\pictures';
 //     .then(() => benchmark('endSession', () => endSession()))
 // ;
 
-// Promise.resolve()
-//     .then(() => benchmark('beginSession', () => beginSession()))
-//     .then(() => benchmark('setOutputPath', () => setOutputPath({ outputPath })))
-//     .then(() => benchmark('takePhoto', () => takePhoto()))
-//     .then(() => benchmark('endSession', () => endSession()))
-// ;
+Promise.resolve()
+    .then(() => benchmark('beginSession', () => beginSession()))
+    .then(() => benchmark('setOutputPath', () => setOutputPath({ outputPath })))
+    .then(() => delay(100))
+    .then(() => benchmark('startLiveView', () => startLiveView()))
+    // .then(() => benchmark('callCameraMethod', () => callCameraMethod({ method: 'SC_TakePicture' })))
+    .then(() => benchmark('takePhoto', () => takePhoto()))
+    .then(() => delay(100))
+    .then(() => benchmark('takePhoto', () => takePhoto()))
+    .then(() => delay(100))
+    .then(() => benchmark('stopLiveView', () => stopLiveView()))
+    .then(() => benchmark('endSession', () => endSession()))
+;
 
 // Promise.resolve()
 //     .then(() => benchmark('beginSession', () => beginSession()))

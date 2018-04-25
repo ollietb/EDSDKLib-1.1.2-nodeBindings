@@ -30,8 +30,10 @@ namespace NodeBindings
         static CanonAPI Api;
         static AutoResetEvent Waiter = new AutoResetEvent(false);
         static AutoResetEvent LiveViewWaiter = new AutoResetEvent(false);
+        static AutoResetEvent TakePhotoWaiter = new AutoResetEvent(false);
         static string ImageSaveDirectory;
         static string LastImageFileName;
+        static bool TakePhotoSuccess = false;
 
         static MemoryStream PreviewBuffer;//buffer for preview images
 
@@ -99,11 +101,13 @@ namespace NodeBindings
         public async Task<object> TakePhoto(dynamic input)
         {
             var result = new NodeResult();
+            var maxTries = 5;
+            var tries = 0;
             bool shouldRestartLiveView = false;
+
             try
             {
                 MainCamera.SaveTo = SaveTo.Host;
-
 
                 if (MainCamera.IsLiveViewOn) {
                     shouldRestartLiveView = true;
@@ -112,17 +116,25 @@ namespace NodeBindings
 
                 await MainCamera.SetCapacity(4096, 999999999);
 
-                await MainCamera.TakePhoto();
-//                if (MainCamera.IsShutterButtonAvailable)
-//                {
-//                   // await MainCamera.SC_PressShutterButton(ShutterButton.Completely);
-//                   // await MainCamera.SC_PressShutterButton(ShutterButton.OFF);
-//
-//                }
-//                else await MainCamera.SC_TakePicture();
+                TakePhotoSuccess = false;
+                while (true) {
+                    await MainCamera.TakePhoto();
 
-                Console.WriteLine("Waiting for download...");
-                Waiter.WaitOne();
+                    // TODO: make it timeout
+                    // https://stackoverflow.com/questions/22678428/any-way-to-trigger-timeout-on-waitone-immediately
+                    TakePhotoWaiter.WaitOne();
+
+                    if (TakePhotoSuccess) {
+                        break;
+                    } else if (tries >= maxTries) {
+                        throw new Exception($"Photo not taken in {tries} tries");
+                    }
+                    else {
+                        Console.WriteLine("Retrying to take photo");
+                        await Task.Delay(100);
+                        tries++;
+                    }
+                }
 
                 result.message = "Took photo";
                 result.success = true;
@@ -140,6 +152,33 @@ namespace NodeBindings
 
 
             return result;
+        }
+
+        private static async void MainCamera_DownloadReady(Camera sender, DownloadInfo Info)
+        {
+            try
+            {
+                Console.WriteLine("Starting image download...::"+Info.FileName);
+                await sender.DownloadFile(Info, ImageSaveDirectory);
+                Console.WriteLine("Image downloading to " + Info.FileName);
+                LastImageFileName = Info.FileName;
+                TakePhotoSuccess = true;
+            }
+            catch (Exception ex) {
+                Console.WriteLine("Error: " + ex.Message);
+                TakePhotoSuccess = false;
+            }
+            finally { TakePhotoWaiter.Set(); }
+        }
+
+        private static void MainCamera_StateChanged(Camera sender, StateEventID eventID, uint parameter)
+        {
+            Console.WriteLine("StateChanged "+ eventID);
+
+            if (eventID == StateEventID.CaptureError) {
+                TakePhotoSuccess = false;
+                TakePhotoWaiter.Set();
+            }
         }
 
         public async Task<object> StartVideo(dynamic input)
@@ -223,7 +262,6 @@ namespace NodeBindings
             return result;
         }
 
-        
         public async Task<object> EndSession(dynamic input)
         {
             var result = new NodeResult();
@@ -236,7 +274,6 @@ namespace NodeBindings
             return result;
         }
 
-        
         public async Task<object> GetLastDownloadedImageFilename(dynamic input)
         {
             var result = new NodeResult();
@@ -265,6 +302,26 @@ namespace NodeBindings
             return result;
         }
 
+        public async Task<object> CallCameraMethod(dynamic input)
+        {
+            var result = new NodeResult();
+
+            try
+            {
+                typeof(Camera).GetMethod((string)input.method).Invoke(MainCamera, new object[] {});
+                result.message = $"CallCameraMethod: {input.method}";
+                result.success = true;
+            }
+            catch (Exception exp) {
+                Console.WriteLine(exp.Message);
+                result.message = exp.Message;
+                result.success = false;
+            }
+
+
+            return result;
+        }
+
         private static void APIHandler_CameraAdded(CanonAPI sender)
         {
             try
@@ -276,25 +333,13 @@ namespace NodeBindings
             finally { Waiter.Set(); }
         }
 
-        private static async void MainCamera_DownloadReady(Camera sender, DownloadInfo Info)
-        {
-            try
-            {
-                Console.WriteLine("Starting image download...::"+Info.FileName);
-                await sender.DownloadFile(Info, ImageSaveDirectory);
-                Console.WriteLine("Image downloading to " + Info.FileName);
-                LastImageFileName = Info.FileName;
-            }
-            catch (Exception ex) { Console.WriteLine("Error: " + ex.Message);}
-            finally { Waiter.Set(); }
-        }
-
         private static void OpenSession(Camera camera)
         {
             Console.WriteLine($"Opening session with camera: {camera.DeviceName}");
             MainCamera = camera;
             MainCamera.DownloadReady += MainCamera_DownloadReady;
             MainCamera.LiveViewUpdated += MainCamera_LiveViewUpdated;
+            MainCamera.StateChanged += MainCamera_StateChanged;
             MainCamera.OpenSession();
             Console.WriteLine($"Opened session with camera: {MainCamera.DeviceName}");
         }
@@ -349,5 +394,5 @@ namespace NodeBindings
                 LiveViewWaiter.Set();
             }
         }
-}
+    }
 }
