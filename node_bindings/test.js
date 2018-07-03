@@ -1,3 +1,6 @@
+const fs = require('fs');
+const path = require('path');
+
 const {
     setOutputPath,
     takePhoto,
@@ -30,14 +33,14 @@ Promise.resolve()
     .then(() => benchmark('beginSession', () => beginSession()))
     .then(() => benchmark('setOutputPath', () => setOutputPath({ outputPath })))
     .then(() => benchmark('startLiveView', () => startLiveView()))
-    // .then(() => benchmark('takePhoto', () => takePhoto()))
-    // .then(() => benchmark('getPreviewImage', getPreviewImage()))
-    // .then(() => benchmark('getPreviewImage', getPreviewImage()))
-    // .then(result => fs.writeFile(
-    //     path.join(outputPath, `live-preview-${Date.now()}.jpg`),
-    //     result.bitmap, (err) => {}
-    // ))
-    // .then(() => benchmark('delay', () => delay(1500)))
+    .then(() => benchmark('takePhoto', () => takePhoto()))
+    .then(() => benchmark('getPreviewImage', getPreviewImage()))
+    .then(() => benchmark('getPreviewImage', getPreviewImage()))
+    .then(result => fs.writeFile(
+        path.join(outputPath, `live-preview-${Date.now()}.jpg`),
+        result.bitmap, (err) => {}
+    ))
+    .then(() => benchmark('delay', () => delay(1500)))
     .then(() => benchmark('startVideo', () => startVideo()))
     .then(() => benchmark('delay', () => delay(2 * 1000)))
     .then(() => benchmark('stopVideo', () => stopVideo()))

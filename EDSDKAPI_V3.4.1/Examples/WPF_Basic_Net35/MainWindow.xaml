@@ -1,0 +1,12 @@
+﻿<Window
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:System="clr-namespace:System;assembly=mscorlib" x:Class="WPF_Basic_Net35.MainWindow"
+        Title="EDSDKAPI .Net3.5 Basic WPF Example" Height="156" Width="456" Closing="Window_Closing">
+    <Grid>
+        <Label x:Name="CameraLabel" Content="No camera connected" FontSize="16" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="10,10,0,0" />
+        <Button x:Name="PhotoButton" Content="Take Photo" FontSize="16" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="10,46,0,0" Height="60" Width="94" Click="PhotoButton_Click" />
+        <TextBox x:Name="SavePathTextBox" Text="" HorizontalAlignment="Left" FontSize="16" Margin="109,49,0,0" TextWrapping="Wrap"  VerticalAlignment="Top" Width="321"/>
+        <CheckBox x:Name="SaveToComputerChBox" Content="Download to Computer" FontSize="16" HorizontalAlignment="Left" Margin="109,81,0,0" VerticalAlignment="Top" Checked="SaveToComputerChBox_Checked" />
+    </Grid>
+</Window>
