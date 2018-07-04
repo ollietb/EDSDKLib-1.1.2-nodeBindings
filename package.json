@@ -1,8 +1,8 @@
 {
-  "name": "node_bindings",
+  "name": "canon-camera-v2",
   "version": "1.0.0",
-  "description": "Wrapper for calling C Sharp EDSDKAPI from node",
-  "main": "index.js",
+  "description": "Wrapper for calling C# EDSDKAPI from node",
+  "main": "node-lib/index.js",
   "scripts": {
     "test": "jest"
   },
@@ -14,7 +14,7 @@
   "author": "Alias Cummins",
   "license": "ISC",
   "dependencies": {
-    "edge": "^7.10.1",
+    "edge": "git+ssh://git@github.com:CrowdReactive/edge.git#master",
     "file-type": "^7.6.0"
   },
   "devDependencies": {

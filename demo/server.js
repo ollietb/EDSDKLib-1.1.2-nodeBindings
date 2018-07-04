@@ -14,7 +14,7 @@ const {
     getLastDownloadedImageFilename,
     getPreviewImage,
     callCameraMethod,
-} = require('../node_bindings/index');
+} = require('../node-lib/index');
 const io = require('socket.io')(app);
 const port = 9003;
 
