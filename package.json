@@ -4,7 +4,8 @@
   "description": "Wrapper for calling C# EDSDKAPI from node",
   "main": "node-lib/index.js",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "build": "node tools/build.js"
   },
   "keywords": [
     "canon",
@@ -15,10 +16,12 @@
   "license": "ISC",
   "dependencies": {
     "edge": "git+ssh://git@github.com:CrowdReactive/edge.git#master",
-    "file-type": "^7.6.0"
+    "file-type": "^7.6.0",
+    "shelljs": "^0.8.2"
   },
   "devDependencies": {
     "@types/jest": "^22.1.0",
+    "fs-extra": "^6.0.1",
     "jest": "^20.0.4"
   }
 }
