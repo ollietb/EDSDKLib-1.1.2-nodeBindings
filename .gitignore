@@ -265,3 +265,4 @@ FakesAssemblies/
 .idea
 
 .DS_STORE
+yarn.lock
