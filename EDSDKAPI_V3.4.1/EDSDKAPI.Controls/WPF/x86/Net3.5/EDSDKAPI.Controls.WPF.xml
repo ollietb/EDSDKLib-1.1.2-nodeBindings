@@ -1,0 +1,621 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>EDSDKAPI.Controls.WPF</name>
+    </assembly>
+    <members>
+        <member name="T:EOSDigital.Controls.CameraControl">
+            <summary>
+            The base class for a live view control
+            </summary>
+            <summary>
+            Base class for any control that uses a camera
+            </summary>
+        </member>
+        <member name="P:EOSDigital.Controls.CameraControl.MainCamera">
+            <summary>
+            The camera that this control is bound to
+            </summary>
+        </member>
+        <member name="F:EOSDigital.Controls.CameraControl._MainCamera">
+            <summary>
+            The field for the <see cref="P:EOSDigital.Controls.CameraControl.MainCamera"/> property
+            </summary>
+        </member>
+        <member name="M:EOSDigital.Controls.CameraControl.#ctor">
+            <summary>
+            Creates a new instance of the <see cref="T:EOSDigital.Controls.CameraControl"/> class
+            </summary>
+        </member>
+        <member name="M:EOSDigital.Controls.CameraControl.SubscribeCameraEvents">
+            <summary>
+            Subscribe to camera events that the inherited control needs
+            </summary>
+        </member>
+        <member name="M:EOSDigital.Controls.CameraControl.UnsubscribeCameraEvents">
+            <summary>
+            Unsubscribe to camera events that the inherited control used
+            </summary>
+        </member>
+        <member name="M:EOSDigital.Controls.CameraControl.CameraChanged">
+            <summary>
+            This is called whenever the <see cref="P:EOSDigital.Controls.CameraControl.MainCamera"/> has changed
+            </summary>
+        </member>
+        <member name="M:EOSDigital.Controls.CameraControl.PropertyChanged(System.String)">
+            <summary>
+            This is called when a property has been changed
+            </summary>
+            <param name="property">The name of the changed property</param>
+        </member>
+        <member name="P:EOSDigital.Controls.CameraControl.Background">
+            <summary>
+            Background color of this control
+            </summary>
+        </member>
+        <member name="P:EOSDigital.Controls.CameraControl.Foreground">
+            <summary>
+            Foreground color of this control
+            </summary>
+        </member>
+        <member name="M:EOSDigital.Controls.CameraControl.Finalize">
+            <summary>
+            Destructor of the <see cref="T:EOSDigital.Controls.CameraControl"/> class
+            </summary>
+        </member>
+        <member name="M:EOSDigital.Controls.CameraControl.Dispose">
+            <summary>
+            Disposes all resources
+            </summary>
+        </member>
+        <member name="M:EOSDigital.Controls.CameraControl.Dispose(System.Boolean)">
+            <summary>
+            Disposes all resources
+            </summary>
+            <param name="disposing">If true, managed resources will get disposed too</param>
+        </member>
+        <member name="T:EOSDigital.Controls.HistogramType">
+            <summary>
+            Defines the types of a histogram
+            </summary>
+        </member>
+        <member name="T:EOSDigital.Controls.ImageAlign">
+            <summary>
+            Defines image alignment
+            </summary>
+        </member>
+        <member name="T:EOSDigital.Controls.ImageTransformation">
+            <summary>
+            Defines image mirror transformation
+            </summary>
+        </member>
+        <member name="T:EOSDigital.Controls.FocusMode">
+            <summary>
+            Defines focus mode
+            </summary>
+        </member>
+        <member name="F:EOSDigital.Controls.FocusMode.Off">
+            <summary>
+            Nothing happens when interacting with the control
+            </summary>
+        </member>
+        <member name="F:EOSDigital.Controls.FocusMode.SetPosition">
+            <summary>
+            The live view zoom/focus rectangle gets set but no focusing is done
+            </summary>
+        </member>
+        <member name="F:EOSDigital.Controls.FocusMode.Hold">
+            <summary>
+            Focusing as long as held
+            </summary>
+        </member>
+        <member name="F:EOSDigital.Controls.FocusMode.Tap">
+            <summary>
+            Focusing for a specified time
+            </summary>
+        </member>
+        <member name="T:EOSDigital.Controls.LiveViewControl">
+            <summary>
+            The base class for a live view control
+            </summary>
+        </member>
+        <member name="P:EOSDigital.Controls.LiveViewControl.ImagePosition">
+            <summary>
+            Alignment of the live view image. You can combine them with a logical OR.
+            <para>e.g. <see cref="P:EOSDigital.Controls.LiveViewControl.ImagePosition"/> = <see cref="F:EOSDigital.Controls.ImageAlign.Top"/> | <see cref="F:EOSDigital.Controls.ImageAlign.Left"/></para>
+            </summary>
+        </member>
+        <member name="P:EOSDigital.Controls.LiveViewControl.ImageTransform">
+            <summary>
+            Live view image transformation. You can combine them with a logical OR.
+            <para>e.g. <see cref="P:EOSDigital.Controls.LiveViewControl.ImageTransform"/> = <see cref="F:EOSDigital.Controls.ImageTransformation.MirrorVertical"/> | <see cref="F:EOSDigital.Controls.ImageTransformation.Rotate"/></para>
+            </summary>
+        </member>
+        <member name="P:EOSDigital.Controls.LiveViewControl.EnableZoomRectangle">
+            <summary>
+            States if the live view zoom rectangle gets drawn
+            </summary>
+        </member>
+        <member name="P:EOSDigital.Controls.LiveViewControl.EnableFocusRectangles">
+            <summary>
+            States if the focus point rectangles get drawn
+            </summary>
+        </member>
+        <member name="P:EOSDigital.Controls.LiveViewControl.AllowFocusPointSelection">
+            <summary>
+            States if a focus point can be selected by clicking on it on the control
+            </summary>
+        </member>
+        <member name="P:EOSDigital.Controls.LiveViewControl.FocusMode">
+            <summary>
+            Live view focus mode on interaction with the control
+            </summary>
+        </member>
+        <member name="P:EOSDigital.Controls.LiveViewControl.FocusTimeout">
+            <summary>
+            Focus time in milliseconds when <see cref="P:EOSDigital.Controls.LiveViewControl.FocusMode"/> is set to <see cref="F:EOSDigital.Controls.FocusMode.Tap"/>
+            </summary>
+        </member>
+        <member name="P:EOSDigital.Controls.LiveViewControl.FocusResultTime">
+            <summary>
+            Time in milliseconds to show the result of the autofocus
+            </summary>
+        </member>
+        <member name="P:EOSDigital.Controls.LiveViewControl.FocusActive">
+            <summary>
+            States if the focus is currently active
+            </summary>
+        </member>
+        <member name="P:EOSDigital.Controls.LiveViewControl.ShowFocusPointSelection">
+            <summary>
+            States if indications about selecting a focus point should be shown
+            </summary>
+        </member>
+        <member name="F:EOSDigital.Controls.LiveViewControl.IsSizeSet">
+            <summary>
+            States if the size of the display size of the image is currently correct
+            </summary>
+        </member>
+        <member name="F:EOSDigital.Controls.LiveViewControl.ShowFocusResult">
+            <summary>
+            States if the focus result should be displayed
+            </summary>
+        </member>
+        <member name="F:EOSDigital.Controls.LiveViewControl.FocusResult">
+            <summary>
+            The current focus points
+            </summary>
+        </member>
+        <member name="F:EOSDigital.Controls.LiveViewControl.LVSize">
+            <summary>
+            The actual position and size of the displayed image with the current controls size
+            </summary>
+        </member>
+        <member name="F:EOSDigital.Controls.LiveViewControl.ImageCenter">
+            <summary>
+            The position of the center point of the displayed image considering the current control size
+            </summary>
+        </member>
+        <member name="M:EOSDigital.Controls.LiveViewControl.#ctor">
+            <summary>
+            Creates a new instance of the <see cref="T:EOSDigital.Controls.LiveViewControl"/> class
+            </summary>
+        </member>
+        <member name="M:EOSDigital.Controls.LiveViewControl.RefreshDrawing">
+            <summary>
+            Ensures that the positioning and sizing of the live view
+            is recalculated with the current values
+            </summary>
+        </member>
+        <member name="M:EOSDigital.Controls.LiveViewControl.Camera_LiveViewUpdated(EOSDigital.API.Camera,System.IO.Stream)">
+            <summary>
+            Gets called when the live view image is updated
+            </summary>
+            <param name="sender">The sender of this event</param>
+            <param name="img">An image embedded in a stream</param>
+        </member>
+        <member name="M:EOSDigital.Controls.LiveViewControl.Camera_LiveViewStopped(EOSDigital.API.Camera)">
+            <summary>
+            Gets called when the live view has stopped
+            </summary>
+            <param name="sender">The sender of this event</param>
+        </member>
+        <member name="M:EOSDigital.Controls.LiveViewControl.CameraChanged">
+            <summary>
+            This is called whenever the camera has changed
+            </summary>
+        </member>
+        <member name="M:EOSDigital.Controls.LiveViewControl.SetLiveViewSize(System.Double,System.Double,System.Double,System.Double)">
+            <summary>
+            Calculates the actual size and position of the displayed image and stores it in the <see cref="F:EOSDigital.Controls.LiveViewControl.LVSize"/> field
+            </summary>
+            <param name="imgW">Actual width of the live view image</param>
+            <param name="imgH">Actual height of the live view image</param>
+            <param name="ctrlW">Actual width of the control</param>
+            <param name="ctrlH">Actual height of the control</param>
+        </member>
+        <member name="M:EOSDigital.Controls.LiveViewControl.GetLiveViewSize(System.Double,System.Double,System.Double,System.Double)">
+            <summary>
+            Calculates the display size and position of the live view image
+            </summary>
+            <param name="imgW">Actual width of the live view image</param>
+            <param name="imgH">Actual height of the live view image</param>
+            <param name="ctrlW">Actual width of the control</param>
+            <param name="ctrlH">Actual height of the control</param>
+        </member>
+        <member name="M:EOSDigital.Controls.LiveViewControl.SubscribeCameraEvents">
+            <summary>
+            Subscribe to camera events that the inherited control needs
+            </summary>
+        </member>
+        <member name="M:EOSDigital.Controls.LiveViewControl.UnsubscribeCameraEvents">
+            <summary>
+            Unsubscribe to camera events that the inherited control used
+            </summary>
+        </member>
+        <member name="M:EOSDigital.Controls.LiveViewControl.Dispose(System.Boolean)">
+            <summary>
+            Disposes all resources
+            </summary>
+            <param name="disposing">If true, managed resources will get disposed too</param>
+        </member>
+        <member name="M:EOSDigital.Controls.LiveViewControl.CalculateRectangle(EOSDigital.Controls.LiveViewControl.TransformationInfo,System.Double@,System.Double@,System.Double@,System.Double@)">
+            <summary>
+            Calculates the position and size of the zoom rectangle
+            </summary>
+            <param name="info">The current live view transformation info</param>
+            <param name="x">X position of the rectangle</param>
+            <param name="y">Y position of the rectangle</param>
+            <param name="width">Width of the rectangle</param>
+            <param name="height">Height of the rectangle</param>
+        </member>
+        <member name="M:EOSDigital.Controls.LiveViewControl.CalculateFocusRectangle(EOSDigital.Controls.LiveViewControl.TransformationInfo,EOSDigital.API.FocusPointInfo,System.Double@,System.Double@,System.Double@,System.Double@)">
+            <summary>
+            Calculates the position and size of a focus point rectangle
+            </summary>
+            <param name="info">The current live view transformation info</param>
+            <param name="focusPoint">The focus point to calculate the position for</param>
+            <param name="x">X position of the rectangle</param>
+            <param name="y">Y position of the rectangle</param>
+            <param name="width">Width of the rectangle</param>
+            <param name="height">Height of the rectangle</param>
+        </member>
+        <member name="M:EOSDigital.Controls.LiveViewControl.CalculateNewPosition(EOSDigital.Controls.LiveViewControl.TransformationInfo,System.Double,System.Double)">
+            <summary>
+            Converts a control position into the SDK zoom/focus position
+            </summary>
+            <param name="info">The current live view transformation info</param>
+            <param name="x">The X coordinate in the control</param>
+            <param name="y">The Y coordinate in the control</param>
+            <returns>The SDK zoom/focus position</returns>
+        </member>
+        <member name="M:EOSDigital.Controls.LiveViewControl.InputFocusDown(EOSDigital.Controls.LiveViewControl.TransformationInfo,System.Double,System.Double)">
+            <summary>
+            Starts focus if applicable when pushing mouse/touch on the live view control
+            </summary>
+            <param name="info">The current live view transformation info</param>
+            <param name="x">The X coordinate in the control</param>
+            <param name="y">The Y coordinate in the control</param>
+        </member>
+        <member name="M:EOSDigital.Controls.LiveViewControl.InputFocusUp(EOSDigital.Controls.LiveViewControl.TransformationInfo,System.Double,System.Double)">
+            <summary>
+            Starts or stops focus if applicable when releasing mouse/touch on the live view control
+            </summary>
+            <param name="info">The current live view transformation info</param>
+            <param name="x">The X coordinate in the control</param>
+            <param name="y">The Y coordinate in the control</param>
+        </member>
+        <member name="M:EOSDigital.Controls.LiveViewControl.FindHitFocusPoint(EOSDigital.Controls.LiveViewControl.TransformationInfo,System.Double,System.Double)">
+            <summary>
+            Finds the index of the focus point at the given position. If none is found, -1 is returned.
+            </summary>
+            <param name="info">The current live view transformation info</param>
+            <param name="x">The X coordinate in the control</param>
+            <param name="y">The Y coordinate in the control</param>
+            <returns>The index of the focus point or -1 if not found</returns>
+        </member>
+        <member name="T:EOSDigital.Controls.LiveViewControl.TransformationInfo">
+            <summary>
+            Holds information about live view size, position and transformations
+            </summary>
+        </member>
+        <member name="F:EOSDigital.Controls.LiveViewControl.TransformationInfo.Left">
+            <summary>
+            Distance between control X:0 and image X:0 where (0,0) is the top left corner
+            </summary>
+        </member>
+        <member name="F:EOSDigital.Controls.LiveViewControl.TransformationInfo.Top">
+            <summary>
+            Distance between control Y:0 and image Y:0 where (0,0) is the top left corner
+            </summary>
+        </member>
+        <member name="F:EOSDigital.Controls.LiveViewControl.TransformationInfo.Width">
+            <summary>
+            Drawing width of the image
+            </summary>
+        </member>
+        <member name="F:EOSDigital.Controls.LiveViewControl.TransformationInfo.Height">
+            <summary>
+            Drawing height of the image
+            </summary>
+        </member>
+        <member name="F:EOSDigital.Controls.LiveViewControl.TransformationInfo.Rotation">
+            <summary>
+            Rotation of the image
+            </summary>
+        </member>
+        <member name="F:EOSDigital.Controls.LiveViewControl.TransformationInfo.MirrorHorizontal">
+            <summary>
+            States if the image is mirrored horizontally or not
+            </summary>
+        </member>
+        <member name="F:EOSDigital.Controls.LiveViewControl.TransformationInfo.MirrorVertical">
+            <summary>
+            States if the image is mirrored vertically or not
+            </summary>
+        </member>
+        <member name="F:EOSDigital.Controls.LiveViewControl.TransformationInfo.HasTransformation">
+            <summary>
+            States if the image is transformed (rotated or mirrored)
+            </summary>
+        </member>
+        <member name="F:EOSDigital.Controls.LiveViewControl.TransformationInfo.HasRotation">
+            <summary>
+            States if the image is rotated
+            </summary>
+        </member>
+        <member name="F:EOSDigital.Controls.LiveViewControl.TransformationInfo.IsVertical">
+            <summary>
+            States if the image is rotated to a vertical position
+            </summary>
+        </member>
+        <member name="F:EOSDigital.Controls.LiveViewControl.TransformationInfo.HasMirror">
+            <summary>
+            States if the image is mirrored
+            </summary>
+        </member>
+        <member name="M:EOSDigital.Controls.LiveViewControl.TransformationInfo.#ctor(System.Double,System.Double,System.Double,System.Double,EOSDigital.Controls.ImageTransformation,System.Boolean,System.Boolean)">
+            <summary>
+            Creates a new instance of the <see cref="T:EOSDigital.Controls.LiveViewControl.TransformationInfo"/> class
+            </summary>
+            <param name="left">Distance between control X:0 and image X:0 where (0,0) is the top left corner</param>
+            <param name="top">Distance between control Y:0 and image Y:0 where (0,0) is the top left corner</param>
+            <param name="width">Drawing width of the image</param>
+            <param name="height">Drawing height of the image</param>
+            <param name="rotation">Rotation of the image</param>
+            <param name="mirrorHorizontal">States if the image is mirrored horizontally or not</param>
+            <param name="mirrorVertical">States if the image is mirrored vertically or not</param>
+        </member>
+        <member name="T:EOSDigital.Controls.LiveViewHistogramControl">
+            <summary>
+            The base class for a live view histogram control
+            </summary>
+        </member>
+        <member name="P:EOSDigital.Controls.LiveViewHistogramControl.ShownHistogram">
+            <summary>
+            The channel of the histogram that is shown
+            </summary>
+        </member>
+        <member name="F:EOSDigital.Controls.LiveViewHistogramControl.Data">
+            <summary>
+            The histogram data
+            </summary>
+        </member>
+        <member name="F:EOSDigital.Controls.LiveViewHistogramControl.DataLength">
+            <summary>
+            The length of the histogram data array
+            </summary>
+        </member>
+        <member name="M:EOSDigital.Controls.LiveViewHistogramControl.#ctor">
+            <summary>
+            Creates a new instance of the <see cref="T:EOSDigital.Controls.LiveViewHistogramControl"/> class
+            </summary>
+        </member>
+        <member name="M:EOSDigital.Controls.LiveViewHistogramControl.HistogramUpdated">
+            <summary>
+            This is called when the histogram data has changed
+            </summary>
+        </member>
+        <member name="M:EOSDigital.Controls.LiveViewHistogramControl.Camera_LiveViewStopped(EOSDigital.API.Camera)">
+            <summary>
+            Gets called when the live view has stopped
+            </summary>
+            <param name="sender">The sender of this event</param>
+        </member>
+        <member name="M:EOSDigital.Controls.LiveViewHistogramControl.SubscribeCameraEvents">
+            <summary>
+            Subscribe to camera events that the inherited control needs
+            </summary>
+        </member>
+        <member name="M:EOSDigital.Controls.LiveViewHistogramControl.UnsubscribeCameraEvents">
+            <summary>
+            Unsubscribe to camera events that the inherited control used
+            </summary>
+        </member>
+        <member name="T:EOSDigital.Controls.WPF.LiveViewHistogram">
+            <summary>
+            A control that displays the histogram of the live view of a camera
+            </summary>
+            <summary>
+            LiveViewHistogram
+            </summary>
+        </member>
+        <member name="P:EOSDigital.Controls.WPF.LiveViewHistogram.VisualChildrenCount">
+            <summary>
+            Gets the number of visual child elements within this element.
+            <para>Always one in this case.</para>
+            </summary>
+        </member>
+        <member name="M:EOSDigital.Controls.WPF.LiveViewHistogram.GetVisualChild(System.Int32)">
+            <summary>
+            Returns the Visual of this control
+            </summary>
+            <param name="index">There is only one Visual, so this is ignored</param>
+            <returns>the Visual of this control</returns>
+        </member>
+        <member name="M:EOSDigital.Controls.WPF.LiveViewHistogram.#ctor">
+            <summary>
+            Creates a new instance of the <see cref="T:EOSDigital.Controls.WPF.LiveViewHistogram"/> class
+            </summary>
+        </member>
+        <member name="M:EOSDigital.Controls.WPF.LiveViewHistogram.HistogramUpdated">
+            <summary>
+            This is called when the histogram data has changed
+            </summary>
+        </member>
+        <member name="M:EOSDigital.Controls.WPF.LiveViewHistogram.Camera_LiveViewStopped(EOSDigital.API.Camera)">
+            <summary>
+            Gets called when the live view has stopped
+            </summary>
+            <param name="sender">The sender of this event</param>
+        </member>
+        <member name="M:EOSDigital.Controls.WPF.LiveViewHistogram.InitializeComponent">
+            <summary>
+            InitializeComponent
+            </summary>
+        </member>
+        <member name="T:EOSDigital.Controls.WPF.LiveView">
+            <summary>
+            A control that displays the live view of a camera
+            </summary>
+            <summary>
+            LiveView
+            </summary>
+        </member>
+        <member name="P:EOSDigital.Controls.WPF.LiveView.ZoomRectangleColor">
+            <summary>
+            Color of the zoom rectangle
+            </summary>
+        </member>
+        <member name="P:EOSDigital.Controls.WPF.LiveView.SelectedFocusRectangleColor">
+            <summary>
+            Color of a selected focus rectangle
+            </summary>
+        </member>
+        <member name="P:EOSDigital.Controls.WPF.LiveView.UnselectedFocusRectangleColor">
+            <summary>
+            Color of an unselected focus rectangle
+            </summary>
+        </member>
+        <member name="P:EOSDigital.Controls.WPF.LiveView.InFocusRectangleColor">
+            <summary>
+            Color of a focus rectangle that is in focus
+            </summary>
+        </member>
+        <member name="P:EOSDigital.Controls.WPF.LiveView.OutOfFocusRectangleColor">
+            <summary>
+            Color of a focus rectangle that is out of focus
+            </summary>
+        </member>
+        <member name="P:EOSDigital.Controls.WPF.LiveView.FocusHoverRectangleColor">
+            <summary>
+            Color of a focus rectangle over which the mouse is hovered
+            </summary>
+        </member>
+        <member name="P:EOSDigital.Controls.WPF.LiveView.VisualChildrenCount">
+            <summary>
+            Gets the number of visual child elements within this element.
+            <para>Always one in this case.</para>
+            </summary>
+        </member>
+        <member name="M:EOSDigital.Controls.WPF.LiveView.GetVisualChild(System.Int32)">
+            <summary>
+            Returns the Visual of this control
+            </summary>
+            <param name="index">There is only one Visual, so this is ignored</param>
+            <returns>the Visual of this control</returns>
+        </member>
+        <member name="M:EOSDigital.Controls.WPF.LiveView.#ctor">
+            <summary>
+            Creates a new instance of the <see cref="T:EOSDigital.Controls.WPF.LiveView"/> class
+            </summary>
+        </member>
+        <member name="M:EOSDigital.Controls.WPF.LiveView.Dispose(System.Boolean)">
+            <summary>
+            Disposes all resources
+            </summary>
+            <param name="disposing">If true, managed resources will get disposed too</param>
+        </member>
+        <member name="M:EOSDigital.Controls.WPF.LiveView.OnMouseDown(System.Windows.Input.MouseButtonEventArgs)">
+            <summary>
+            Mouse down event handler
+            </summary>
+            <param name="e">Mouse event arguments</param>
+        </member>
+        <member name="M:EOSDigital.Controls.WPF.LiveView.OnMouseUp(System.Windows.Input.MouseButtonEventArgs)">
+            <summary>
+            Mouse up event handler
+            </summary>
+            <param name="e">Mouse event arguments</param>
+        </member>
+        <member name="M:EOSDigital.Controls.WPF.LiveView.OnMouseMove(System.Windows.Input.MouseEventArgs)">
+            <summary>
+            Mouse move event handler
+            </summary>
+            <param name="e">Mouse event arguments</param>
+        </member>
+        <member name="M:EOSDigital.Controls.WPF.LiveView.OnMouseLeave(System.Windows.Input.MouseEventArgs)">
+            <summary>
+            Mouse leave event handler
+            </summary>
+            <param name="e">Event arguments</param>
+        </member>
+        <member name="M:EOSDigital.Controls.WPF.LiveView.Camera_LiveViewUpdated(EOSDigital.API.Camera,System.IO.Stream)">
+            <summary>
+            Gets called if the live view image is updated
+            </summary>
+            <param name="sender">The sender of this event</param>
+            <param name="img">An image embedded in a stream</param>
+        </member>
+        <member name="M:EOSDigital.Controls.WPF.LiveView.Camera_LiveViewStopped(EOSDigital.API.Camera)">
+            <summary>
+            Gets called when the live view has stopped
+            </summary>
+            <param name="sender">The sender of this event</param>
+        </member>
+        <member name="M:EOSDigital.Controls.WPF.LiveView.GrabFrame">
+            <summary>
+            Grabs the current live view frame
+            </summary>
+            <returns>the current live view frame</returns>
+        </member>
+        <member name="M:EOSDigital.Controls.WPF.LiveView.RefreshDrawing">
+            <summary>
+            Ensures that the positioning and sizing of the live view
+            is recalculated with the current values
+            </summary>
+        </member>
+        <member name="M:EOSDigital.Controls.WPF.LiveView.PropertyChanged(System.String)">
+            <summary>
+            This is called when a property has been changed
+            </summary>
+            <param name="property">The name of the changed property</param>
+        </member>
+        <member name="M:EOSDigital.Controls.WPF.LiveView.CustomFilter(System.Windows.Media.Imaging.BitmapSource)">
+            <summary>
+            Gets called when the live view is on and before the frame is transformed.
+            </summary>
+            <remarks>If the size of the frame is changed, <see cref="F:EOSDigital.Controls.LiveViewControl.IsSizeSet"/> must be set to false</remarks>
+            <param name="frame">The current live view frame without modification</param>
+            <returns>The original frame or a modified image</returns>
+        </member>
+        <member name="M:EOSDigital.Controls.WPF.LiveView.CustomFramePaint(System.Windows.Media.DrawingContext,EOSDigital.Controls.LiveViewControl.TransformationInfo)">
+            <summary>
+            Gets called when the live view is on and after the frame has been painted but before the zoom rectangle is painted.
+            </summary>
+            <param name="dc">The drawing context used for drawing the current frame</param>
+            <param name="info">The current live view transformation info</param>
+        </member>
+        <member name="M:EOSDigital.Controls.WPF.LiveView.CustomInactivePaint(System.Windows.Media.DrawingContext)">
+            <summary>
+            Gets called when the live view is off and the background has been cleared with <see cref="P:EOSDigital.Controls.CameraControl.Background"/>
+            </summary>
+            <param name="dc">The drawing context used for drawing the background</param>
+        </member>
+        <member name="M:EOSDigital.Controls.WPF.LiveView.InitializeComponent">
+            <summary>
+            InitializeComponent
+            </summary>
+        </member>
+    </members>
+</doc>
