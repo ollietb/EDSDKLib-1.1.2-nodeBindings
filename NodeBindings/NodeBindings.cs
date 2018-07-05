@@ -118,7 +118,7 @@ namespace NodeBindings
                 MainCamera.SaveTo = SaveTo.Host;
 
                 if (MainCamera.IsLiveViewOn) {
-                    shouldRestartLiveView = true;
+                    shouldRestartLiveView = (bool)input.shouldRestartLiveView;
                     MainCamera.StopLiveView();
                 }
 
@@ -192,6 +192,7 @@ namespace NodeBindings
 
         public async Task<object> StartVideo(dynamic input)
         {
+            // needs live view on (at least in 70D)
             var result = new NodeResult();
 
             //Method work goes here...
