@@ -238,7 +238,6 @@ namespace NodeBindings
             try
             {
                 Waiter = new AutoResetEvent(false);
-                Console.WriteLine("Called C# method from node.");
                 if (Api == null )
                 {
                     Api = new CanonAPI();
@@ -278,7 +277,9 @@ namespace NodeBindings
             var result = new NodeResult();
             
             MainCamera?.Dispose();
+            MainCamera = null;
             Api.Dispose();
+            Api = null;
 
             result.message = "Camera session ended.";
             result.success = true;
