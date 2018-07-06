@@ -113,12 +113,19 @@ namespace NodeBindings
         {
             LogMessage($"Opening session with camera: {camera.DeviceName}");
             MainCamera = camera;
+
+            if (MainCamera.SessionOpen) {
+                LogMessage("Camera session already opened");
+                return;
+            }
+
             // TODO: Use individual lambda expressions for each action
             // https://stackoverflow.com/questions/2465040/using-lambda-expressions-for-event-handlers
             MainCamera.DownloadReady += MainCamera_DownloadReady;
             MainCamera.LiveViewUpdated += MainCamera_LiveViewUpdated;
             MainCamera.StateChanged += MainCamera_StateChanged;
             MainCamera.OpenSession();
+
             LogMessage($"Opened session with camera: {MainCamera.DeviceName}");
         }
 
@@ -255,8 +262,10 @@ namespace NodeBindings
                     }
                 }
 
+                string downloadedFilePath = await DownloadFile(LastCapturedFileInfo);
+
                 result.message = "Photo taken";
-                result.path = Path.Combine(SaveDirectory, LastCapturedFileInfo.FileName);
+                result.path = downloadedFilePath;
                 result.success = true;
             }
             catch(Exception ex) {
@@ -368,12 +377,9 @@ namespace NodeBindings
 
             try
             {
-                string FileDownloadPath = Path.Combine(SaveDirectory, LastCapturedFileInfo.FileName);
-                LogMessage($"Downloading file to \"{FileDownloadPath}\"");
-                await MainCamera.DownloadFile(LastCapturedFileInfo, SaveDirectory);
-                LogMessage($"File downloaded to \"{FileDownloadPath}\"");
+                string downloadedFilePath = await DownloadFile(LastCapturedFileInfo);
                 result.message = "File downloaded";
-                result.path = FileDownloadPath;
+                result.path = downloadedFilePath;
                 result.success = true;
             }
             catch (Exception ex)
@@ -383,6 +389,16 @@ namespace NodeBindings
             }
 
             return result;
+        }
+
+        public static async Task<string> DownloadFile(DownloadInfo downloadInfo)
+        {
+            string downloadedFilePath = Path.Combine(SaveDirectory, downloadInfo.FileName);
+            LogMessage($"Downloading file to \"{downloadedFilePath}\"");
+            await MainCamera.DownloadFile(downloadInfo, SaveDirectory);
+            LogMessage($"File downloaded to \"{downloadedFilePath}\"");
+
+            return downloadedFilePath;
         }
 
         public async Task<object> GetLastCapturedFileName(dynamic input)
