@@ -35,13 +35,15 @@ namespace NodeBindings
     {
         static Camera MainCamera;
         static CanonAPI Api;
-        static AutoResetEvent Waiter = new AutoResetEvent(false);
-        static AutoResetEvent LiveViewWaiter = new AutoResetEvent(false);
-        static AutoResetEvent TakePhotoWaiter = new AutoResetEvent(false);
+
         static string SaveDirectory;
-        static string LastImageFileName;
+        static string LastCapturedFileName;
         static bool TakePhotoSuccess = false;
         static int LiveViewUpdates = 0;
+
+        static AutoResetEvent CameraAddedWaiter = new AutoResetEvent(false);
+        static AutoResetEvent LiveViewWaiter = new AutoResetEvent(false);
+        static AutoResetEvent DownloadReadyWaiter = new AutoResetEvent(false);
 
         //buffer for preview images
         static MemoryStream PreviewBuffer;
@@ -54,7 +56,7 @@ namespace NodeBindings
 
             try
             {
-                Waiter = new AutoResetEvent(false);
+                CameraAddedWaiter = new AutoResetEvent(false);
                 if (Api == null )
                 {
                     Api = new CanonAPI();
@@ -76,8 +78,8 @@ namespace NodeBindings
                 {
                     LogMessage("No camera found. Please plug in camera");
                     Api.CameraAdded += APIHandler_CameraAdded;
-                    Waiter.WaitOne();
-                    Waiter.Reset();
+                    CameraAddedWaiter.WaitOne();
+                    CameraAddedWaiter.Reset();
                 }
 
                 result.message = $"Opened session with camera: {MainCamera.DeviceName}";
@@ -135,7 +137,7 @@ namespace NodeBindings
 
         public async Task<object> SetOutputPath(dynamic input)
         {
-            var result = new NodeResult(); 
+            var result = new NodeResult();
             try
             {
                 LogMessage($"Setting output path to \"{input.outputPath}\"");
@@ -162,7 +164,7 @@ namespace NodeBindings
                if (!RetrySession()) { LogMessage("Sorry, something went wrong. No camera");}
            }
            catch (Exception ex) { LogMessage("Error: " + ex.Message);}
-           finally { Waiter.Set(); }
+           finally { CameraAddedWaiter.Set(); }
         }
 
         public async Task<object> StartLiveView(dynamic input)
@@ -225,7 +227,9 @@ namespace NodeBindings
                 MainCamera.SaveTo = SaveTo.Host;
 
                 if (MainCamera.IsLiveViewOn) {
-                    shouldRestartLiveView = (bool)input.shouldRestartLiveView;
+                    shouldRestartLiveView = HasInputValue(input, "shouldRestartLiveView")
+                        ? (bool)input.shouldRestartLiveView
+                        : true;
                     MainCamera.StopLiveView();
                 }
 
@@ -237,7 +241,7 @@ namespace NodeBindings
 
                     // TODO: make it timeout
                     // https://stackoverflow.com/questions/22678428/any-way-to-trigger-timeout-on-waitone-immediately
-                    TakePhotoWaiter.WaitOne();
+                    DownloadReadyWaiter.WaitOne();
 
                     if (TakePhotoSuccess) {
                         break;
@@ -252,7 +256,7 @@ namespace NodeBindings
                 }
 
                 result.message = "Photo taken";
-                result.path = Path.Combine(SaveDirectory, LastImageFileName);
+                result.path = Path.Combine(SaveDirectory, LastCapturedFileName);
                 result.success = true;
             }
             catch(Exception ex) {
@@ -274,17 +278,17 @@ namespace NodeBindings
         {
             try
             {
-                LogMessage("Starting image download: " + Info.FileName);
+                LogMessage("Starting file download: " + Info.FileName);
                 await sender.DownloadFile(Info, SaveDirectory);
-                LogMessage("Image downloaded to " + Info.FileName);
-                LastImageFileName = Info.FileName;
+                LogMessage("File downloaded to " + Info.FileName);
+                LastCapturedFileName = Info.FileName;
                 TakePhotoSuccess = true;
             }
             catch (Exception ex) {
                 LogMessage("Error: " + ex.Message);
                 TakePhotoSuccess = false;
             }
-            finally { TakePhotoWaiter.Set(); }
+            finally { DownloadReadyWaiter.Set(); }
         }
 
         private static void MainCamera_StateChanged(Camera sender, StateEventID eventID, uint parameter)
@@ -293,7 +297,7 @@ namespace NodeBindings
 
             if (eventID == StateEventID.CaptureError) {
                 TakePhotoSuccess = false;
-                TakePhotoWaiter.Set();
+                DownloadReadyWaiter.Set();
             }
         }
 
@@ -324,15 +328,19 @@ namespace NodeBindings
             LogMessage("Stopping video capture");
 
             var result = new MediaResult();
+
+            bool shouldRestartLiveView = HasInputValue(input, "shouldRestartLiveView")
+                ? (bool)input.shouldRestartLiveView
+                : false;
+
             try
             {
-                //Method work goes here...
-                bool save = true;//s (bool)STComputerRdButton.IsChecked || (bool)STBothRdButton.IsChecked;
+                bool save = true;
                 MainCamera.StopFilming(save);
-                TakePhotoWaiter.WaitOne();
+                DownloadReadyWaiter.WaitOne();
 
                 result.message = "Stopped recording video.";
-                result.path = Path.Combine(SaveDirectory, LastImageFileName);
+                result.path = Path.Combine(SaveDirectory, LastCapturedFileName);
                 result.success = true;
             }
             catch (Exception ex)
@@ -340,16 +348,23 @@ namespace NodeBindings
                 result.message = ex.Message;
                 result.success = false;
             }
+            finally
+            {
+                if (!shouldRestartLiveView) {
+                    MainCamera.StopLiveView();
+                }
+            }
+
             return result;
         }
 
-        public async Task<object> GetLastDownloadedImageFilename(dynamic input)
+        public async Task<object> GetLastCapturedFileName(dynamic input)
         {
-            LogMessage($"Getting last downloaded image file name \"{LastImageFileName}\"");
+            LogMessage($"Getting last captured file name \"{LastCapturedFileName}\"");
 
             var result = new NodeResult();
 
-            result.message = LastImageFileName;
+            result.message = LastCapturedFileName;
             result.success = true;
             return result;
         }
@@ -441,7 +456,13 @@ namespace NodeBindings
 
         private static void LogMessage(string message)
         {
-            Console.WriteLine(String.Format("{0:s}", DateTime.Now) + " [CanonCameraV2] " + message);
+            DateTime now = DateTime.Now;
+            Console.WriteLine(String.Format("{0:s}.{1}", now, now.Millisecond) + " [CanonCameraV2] " + message);
+        }
+
+        private static bool HasInputValue(dynamic input, string key)
+        {
+            return ((IDictionary<String, object>)input).ContainsKey(key);
         }
     }
 }
