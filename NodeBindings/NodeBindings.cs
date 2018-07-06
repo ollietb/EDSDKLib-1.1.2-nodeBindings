@@ -52,8 +52,6 @@ namespace NodeBindings
         {
             LogMessage("Beginning session");
 
-            var result = new NodeResult();
-
             try
             {
                 CameraAddedWaiter = new AutoResetEvent(false);
@@ -82,30 +80,31 @@ namespace NodeBindings
                     CameraAddedWaiter.Reset();
                 }
 
+                var result = new NodeResult();
                 result.message = $"Opened session with camera: {MainCamera.DeviceName}";
                 result.success= true;
 
-            }catch  (Exception ex)
-            {
-                result.message = ex.Message;
-                result.success = false;
+                return result;
             }
-            return result;
+            catch (Exception ex)
+            {
+                return HandleException(ex);
+            }
         }
 
         public async Task<object> EndSession(dynamic input)
         {
             LogMessage("Ending session");
 
-            var result = new NodeResult();
-
             MainCamera?.Dispose();
             MainCamera = null;
             Api.Dispose();
             Api = null;
 
+            var result = new NodeResult();
             result.message = "Camera session ended.";
             result.success = true;
+
             return result;
         }
 
@@ -131,8 +130,6 @@ namespace NodeBindings
 
         public static bool RetrySession()
         {
-            LogMessage($"Opening session with camera: {MainCamera.DeviceName}");
-
             List<Camera> cameras = Api.GetCameraList();
             if (cameras.Count > 0)
             {
@@ -144,23 +141,21 @@ namespace NodeBindings
 
         public async Task<object> SetOutputPath(dynamic input)
         {
-            var result = new NodeResult();
             try
             {
                 LogMessage($"Setting output path to \"{input.outputPath}\"");
                 SaveDirectory = (string)input.outputPath;
+
+                var result = new NodeResult();
                 result.message = "Set output path to " + (string)input.outputPath;
                 result.success = true;
+
+                return result;
             }
-            catch (Exception ex){
-                //Can't use requested path, resetting to default
-                SaveDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "RemotePhoto");
-                LogMessage(ex.Message.ToString());
-                LogMessage("Can't use requested path, resetting to default:" + SaveDirectory.ToString());
-                result.message = ex.Message.ToString();
-                result.success = false;
+            catch (Exception ex)
+            {
+                return HandleException(ex);
             }
-            return result;
         }
 
         private static void APIHandler_CameraAdded(CanonAPI sender)
@@ -170,15 +165,13 @@ namespace NodeBindings
                LogMessage("Camera added event received");
                if (!RetrySession()) { LogMessage("Sorry, something went wrong. No camera");}
            }
-           catch (Exception ex) { LogMessage("Error: " + ex.Message);}
+           catch (Exception ex) { LogMessage("Error: " + ex.ToString());}
            finally { CameraAddedWaiter.Set(); }
         }
 
         public async Task<object> StartLiveView(dynamic input)
         {
             LogMessage("Starting live view");
-
-            NodeResult result = new NodeResult();
 
             try
             {
@@ -188,43 +181,43 @@ namespace NodeBindings
                 LogMessage("Waiting for first live view...");
                 LiveViewWaiter.WaitOne();
 
+                NodeResult result = new NodeResult();
                 result.message = "Starting LiveView";
                 result.success = true;
+
+                return result;
             }
-            catch (Exception ex) {
-                result.message="Error: " + ex.Message;
-                result.success = false;
+            catch (Exception ex)
+            {
+                return HandleException(ex);
             }
-            
-            return result;
         }
 
         public async Task<object> StopLiveView(dynamic input)
         {
             LogMessage("Stopping live view");
 
-            NodeResult result = new NodeResult();
 
             try
             {
                 MainCamera.StopLiveView();
+
+                NodeResult result = new NodeResult();
                 result.message = "Stopping LiveView";
                 result.success = true;
+
+                return result;
             }
             catch (Exception ex)
             {
-                result.message = "Error: " + ex.Message;
-                result.success = false;
+                return HandleException(ex);
             }
-
-            return result;
         }
 
         public async Task<object> TakePhoto(dynamic input)
         {
             LogMessage("Taking photo");
 
-            var result = new MediaResult();
             var maxTries = 5;
             var tries = 0;
             bool shouldRestartLiveView = false;
@@ -264,13 +257,15 @@ namespace NodeBindings
 
                 string downloadedFilePath = await DownloadFile(LastCapturedFileInfo);
 
+                var result = new MediaResult();
                 result.message = "Photo taken";
                 result.path = downloadedFilePath;
                 result.success = true;
+
+                return result;
             }
             catch(Exception ex) {
-                result.message = ex.Message;
-                result.success = false;
+                return HandleException(ex);
             }
             finally
             {
@@ -278,9 +273,6 @@ namespace NodeBindings
                     MainCamera.StartLiveView();
                 }
             }
-
-
-            return result;
         }
 
         private static async void MainCamera_DownloadReady(Camera sender, DownloadInfo Info)
@@ -291,7 +283,7 @@ namespace NodeBindings
                 CaptureSuccess = true;
             }
             catch (Exception ex) {
-                LogMessage("Error: " + ex.Message);
+                LogMessage("Error: " + ex.ToString());
                 CaptureSuccess = false;
             }
             finally { DownloadReadyWaiter.Set(); }
@@ -312,28 +304,26 @@ namespace NodeBindings
             LogMessage("Starting video capture");
 
             // needs live view on (at least in 70D)
-            var result = new NodeResult();
 
-            //Method work goes here...
             try
             {
                 MainCamera.StartFilming(true);
+
+                var result = new NodeResult();
                 result.message = "Started recording video.";
                 result.success = true;
+
+                return result;
             }
             catch (Exception ex){
-                result.message = ex.Message;
-                result.success = false;
+                return HandleException(ex);
             }
 
-            return result;
         }
 
         public async Task<object> StopVideo(dynamic input)
         {
             LogMessage("Stopping video capture");
-
-            var result = new NodeResult();
 
             bool shouldRestartLiveView = HasInputValue(input, "shouldRestartLiveView")
                 ? (bool)input.shouldRestartLiveView
@@ -345,13 +335,15 @@ namespace NodeBindings
                 MainCamera.StopFilming(save);
                 DownloadReadyWaiter.WaitOne();
 
+                var result = new NodeResult();
                 result.message = "Stopped recording video.";
                 result.success = true;
+
+                return result;
             }
             catch (Exception ex)
             {
-                result.message = ex.Message;
-                result.success = false;
+               return HandleException(ex);
             }
             finally
             {
@@ -359,36 +351,36 @@ namespace NodeBindings
                     MainCamera.StopLiveView();
                 }
             }
-
-            return result;
         }
 
         public async Task<object> DownloadLastCapturedFile(dynamic input)
         {
             LogMessage($"Downloading last captured file");
 
-            var result = new MediaResult();
-
             if (LastCapturedFileInfo == null) {
+                var result = new NodeResult();
                 result.message = "No file has been captured yet";
                 result.success = false;
+
                 return result;
             }
 
             try
             {
                 string downloadedFilePath = await DownloadFile(LastCapturedFileInfo);
+
+                var result = new MediaResult();
                 result.message = "File downloaded";
                 result.path = downloadedFilePath;
                 result.success = true;
+
+                return result;
             }
             catch (Exception ex)
             {
-                result.message = ex.Message;
-                result.success = false;
+                return HandleException(ex);
             }
 
-            return result;
         }
 
         public static async Task<string> DownloadFile(DownloadInfo downloadInfo)
@@ -410,6 +402,7 @@ namespace NodeBindings
             if (LastCapturedFileInfo == null) {
                 result.message = "No file has been captured yet";
                 result.success = false;
+
                 return result;
             }
 
@@ -423,43 +416,38 @@ namespace NodeBindings
       
         public async Task<object> GetPreviewImage(dynamic input)
         {
-            var result = new PreviewImageResult();
             try
             {
+                var result = new PreviewImageResult();
                 result.bitmap = PreviewBuffer.GetBuffer();
                 result.message = "Preview Image retrieved from buffer";
                 result.success = true;
+
+                return result;
             }
-            catch (Exception exp)
+            catch (Exception ex)
             {
-                LogMessage(exp.Message);
-                result.message = exp.Message;
-                result.success = false;
+                return HandleException(ex);
             }
-            
-            return result;
         }
 
         public async Task<object> CallCameraMethod(dynamic input)
         {
-            var result = new NodeResult();
-
             LogMessage($"Calling camera method: {input.method}");
 
             try
             {
                 typeof(Camera).GetMethod((string)input.method).Invoke(MainCamera, new object[] {});
+
+                var result = new NodeResult();
                 result.message = $"CallCameraMethod: ";
                 result.success = true;
-            }
-            catch (Exception exp) {
-                LogMessage(exp.Message);
-                result.message = exp.Message;
-                result.success = false;
-            }
 
-
-            return result;
+                return result;
+            }
+            catch (Exception ex) {
+                return HandleException(ex);
+            }
         }
 
         private static void MainCamera_LiveViewUpdated(Camera sender, Stream img)
@@ -496,9 +484,7 @@ namespace NodeBindings
             }
             catch (Exception ex)
             {
-                LogMessage("Error: " + ex.Message);
-                result.message = "Error: " + ex.Message;
-                result.success = false;
+                HandleException(ex);
             }
             finally
             {
@@ -515,6 +501,17 @@ namespace NodeBindings
         private static bool HasInputValue(dynamic input, string key)
         {
             return ((IDictionary<String, object>)input).ContainsKey(key);
+        }
+
+        private static NodeResult HandleException(Exception ex)
+        {
+            LogMessage("Error: " + ex.ToString());
+
+            var result = new NodeResult();
+            result.message = "Error: " + ex.Message;
+            result.success = false;
+
+            return result;
         }
     }
 }
