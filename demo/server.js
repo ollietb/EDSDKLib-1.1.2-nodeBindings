@@ -12,6 +12,7 @@ const {
     startVideo,
     stopVideo,
     getLastDownloadedImageFilename,
+    downloadLastCapturedFile,
     getPreviewImage,
     callCameraMethod,
 } = require('../node-lib/index');
@@ -86,6 +87,11 @@ io.on('connection', function(socket) {
         stopCaptureVideo(callback);
     });
 
+    clientSocket.on('downloadLastFile', (data, callback) => {
+        console.log('Downloading last file');
+        downloadLastFile(callback);
+    });
+
     clientSocket.on('initCamera', () => {
         console.log('Initialising camera');
 
@@ -119,10 +125,7 @@ function stopPreview() {
 
 function capturePhoto(callback) {
     takePhoto()
-        .then((result) => fs.readFileSync(result.path))
-        .then(buffer => {
-            callback('data:image/jpeg;base64,' + buffer.toString('base64'));
-        })
+        .then((result) => callback(path.relative(savePath, result.path)))
         .catch(handleError);
 }
 
@@ -133,6 +136,11 @@ function startCaptureVideo() {
 
 function stopCaptureVideo(callback) {
     stopVideo()
+        .catch(handleError);
+}
+
+function downloadLastFile(callback) {
+    downloadLastCapturedFile()
         .then((result) => callback(path.relative(savePath, result.path)))
         .catch(handleError);
 }

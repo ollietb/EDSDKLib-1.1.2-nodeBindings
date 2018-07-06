@@ -37,8 +37,8 @@ namespace NodeBindings
         static CanonAPI Api;
 
         static string SaveDirectory;
-        static string LastCapturedFileName;
-        static bool TakePhotoSuccess = false;
+        static DownloadInfo LastCapturedFileInfo;
+        static bool CaptureSuccess = false;
         static int LiveViewUpdates = 0;
 
         static AutoResetEvent CameraAddedWaiter = new AutoResetEvent(false);
@@ -235,7 +235,7 @@ namespace NodeBindings
 
                 await MainCamera.SetCapacity(4096, 999999999);
 
-                TakePhotoSuccess = false;
+                CaptureSuccess = false;
                 while (true) {
                     await MainCamera.TakePhoto();
 
@@ -243,7 +243,7 @@ namespace NodeBindings
                     // https://stackoverflow.com/questions/22678428/any-way-to-trigger-timeout-on-waitone-immediately
                     DownloadReadyWaiter.WaitOne();
 
-                    if (TakePhotoSuccess) {
+                    if (CaptureSuccess) {
                         break;
                     } else if (tries >= maxTries) {
                         throw new Exception($"Photo not taken in {tries} tries");
@@ -256,7 +256,7 @@ namespace NodeBindings
                 }
 
                 result.message = "Photo taken";
-                result.path = Path.Combine(SaveDirectory, LastCapturedFileName);
+                result.path = Path.Combine(SaveDirectory, LastCapturedFileInfo.FileName);
                 result.success = true;
             }
             catch(Exception ex) {
@@ -278,15 +278,12 @@ namespace NodeBindings
         {
             try
             {
-                LogMessage("Starting file download: " + Info.FileName);
-                await sender.DownloadFile(Info, SaveDirectory);
-                LogMessage("File downloaded to " + Info.FileName);
-                LastCapturedFileName = Info.FileName;
-                TakePhotoSuccess = true;
+                LastCapturedFileInfo = Info;
+                CaptureSuccess = true;
             }
             catch (Exception ex) {
                 LogMessage("Error: " + ex.Message);
-                TakePhotoSuccess = false;
+                CaptureSuccess = false;
             }
             finally { DownloadReadyWaiter.Set(); }
         }
@@ -296,7 +293,7 @@ namespace NodeBindings
             LogMessage("StateChanged "+ eventID);
 
             if (eventID == StateEventID.CaptureError) {
-                TakePhotoSuccess = false;
+                CaptureSuccess = false;
                 DownloadReadyWaiter.Set();
             }
         }
@@ -327,7 +324,7 @@ namespace NodeBindings
         {
             LogMessage("Stopping video capture");
 
-            var result = new MediaResult();
+            var result = new NodeResult();
 
             bool shouldRestartLiveView = HasInputValue(input, "shouldRestartLiveView")
                 ? (bool)input.shouldRestartLiveView
@@ -340,7 +337,6 @@ namespace NodeBindings
                 DownloadReadyWaiter.WaitOne();
 
                 result.message = "Stopped recording video.";
-                result.path = Path.Combine(SaveDirectory, LastCapturedFileName);
                 result.success = true;
             }
             catch (Exception ex)
@@ -358,13 +354,53 @@ namespace NodeBindings
             return result;
         }
 
+        public async Task<object> DownloadLastCapturedFile(dynamic input)
+        {
+            LogMessage($"Downloading last captured file");
+
+            var result = new MediaResult();
+
+            if (LastCapturedFileInfo == null) {
+                result.message = "No file has been captured yet";
+                result.success = false;
+                return result;
+            }
+
+            try
+            {
+                string FileDownloadPath = Path.Combine(SaveDirectory, LastCapturedFileInfo.FileName);
+                LogMessage($"Downloading file to \"{FileDownloadPath}\"");
+                await MainCamera.DownloadFile(LastCapturedFileInfo, SaveDirectory);
+                LogMessage($"File downloaded to \"{FileDownloadPath}\"");
+                result.message = "File downloaded";
+                result.path = FileDownloadPath;
+                result.success = true;
+            }
+            catch (Exception ex)
+            {
+                result.message = ex.Message;
+                result.success = false;
+            }
+
+            return result;
+        }
+
         public async Task<object> GetLastCapturedFileName(dynamic input)
         {
-            LogMessage($"Getting last captured file name \"{LastCapturedFileName}\"");
+            LogMessage("Getting last captured file name");
 
             var result = new NodeResult();
 
-            result.message = LastCapturedFileName;
+            if (LastCapturedFileInfo == null) {
+                result.message = "No file has been captured yet";
+                result.success = false;
+                return result;
+            }
+
+            string fileName = LastCapturedFileInfo.FileName;
+            LogMessage($"Last captured file name \"{fileName}\"");
+
+            result.message = fileName;
             result.success = true;
             return result;
         }
