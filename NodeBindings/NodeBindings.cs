@@ -46,6 +46,93 @@ namespace NodeBindings
         //buffer for preview images
         static MemoryStream PreviewBuffer;
 
+        public async Task<object> BeginSession(dynamic input)
+        {
+            LogMessage("Beginning session");
+
+            var result = new NodeResult();
+
+            try
+            {
+                Waiter = new AutoResetEvent(false);
+                if (Api == null )
+                {
+                    Api = new CanonAPI();
+                }
+
+                LogMessage("APIHandler initialised");
+                List<Camera> cameras = Api.GetCameraList();
+
+                foreach (var camera in cameras)
+                {
+                    LogMessage("APIHandler GetCameraList:" + camera);
+                }
+
+                if (cameras.Count > 0)
+                {
+                    OpenSession(cameras[0]);
+                }
+                else
+                {
+                    LogMessage("No camera found. Please plug in camera");
+                    Api.CameraAdded += APIHandler_CameraAdded;
+                    Waiter.WaitOne();
+                    Waiter.Reset();
+                }
+
+                result.message = $"Opened session with camera: {MainCamera.DeviceName}";
+                result.success= true;
+
+            }catch  (Exception ex)
+            {
+                result.message = ex.Message;
+                result.success = false;
+            }
+            return result;
+        }
+
+        public async Task<object> EndSession(dynamic input)
+        {
+            LogMessage("Ending session");
+
+            var result = new NodeResult();
+
+            MainCamera?.Dispose();
+            MainCamera = null;
+            Api.Dispose();
+            Api = null;
+
+            result.message = "Camera session ended.";
+            result.success = true;
+            return result;
+        }
+
+        private static void OpenSession(Camera camera)
+        {
+            LogMessage($"Opening session with camera: {camera.DeviceName}");
+            MainCamera = camera;
+            // TODO: Use individual lambda expressions for each action
+            // https://stackoverflow.com/questions/2465040/using-lambda-expressions-for-event-handlers
+            MainCamera.DownloadReady += MainCamera_DownloadReady;
+            MainCamera.LiveViewUpdated += MainCamera_LiveViewUpdated;
+            MainCamera.StateChanged += MainCamera_StateChanged;
+            MainCamera.OpenSession();
+            LogMessage($"Opened session with camera: {MainCamera.DeviceName}");
+        }
+
+        public static bool RetrySession()
+        {
+            LogMessage($"Opening session with camera: {MainCamera.DeviceName}");
+
+            List<Camera> cameras = Api.GetCameraList();
+            if (cameras.Count > 0)
+            {
+                OpenSession(cameras[0]);
+                return true;
+            }
+            else return false;
+        }
+
         public async Task<object> SetOutputPath(dynamic input)
         {
             var result = new NodeResult(); 
@@ -65,6 +152,17 @@ namespace NodeBindings
                 result.success = false;
             }
             return result;
+        }
+
+        private static void APIHandler_CameraAdded(CanonAPI sender)
+        {
+           try
+           {
+               LogMessage("Camera added event received");
+               if (!RetrySession()) { LogMessage("Sorry, something went wrong. No camera");}
+           }
+           catch (Exception ex) { LogMessage("Error: " + ex.Message);}
+           finally { Waiter.Set(); }
         }
 
         public async Task<object> StartLiveView(dynamic input)
@@ -244,65 +342,6 @@ namespace NodeBindings
             }
             return result;
         }
-       
-        public async Task<object> BeginSession(dynamic input)
-        {
-            LogMessage("Beginning session");
-
-            var result = new NodeResult();
-
-            try
-            {
-                Waiter = new AutoResetEvent(false);
-                if (Api == null )
-                {
-                    Api = new CanonAPI();
-                }
-                LogMessage("APIHandler initialised");
-                List<Camera> cameras = Api.GetCameraList();
-                foreach (var camera in cameras)
-                {
-                    LogMessage("APIHandler GetCameraList:" + camera);
-                }
-
-                if (cameras.Count > 0)
-                {
-                    OpenSession(cameras[0]);
-                }
-                else
-                {
-                    LogMessage("No camera found. Please plug in camera");
-                    Api.CameraAdded += APIHandler_CameraAdded;
-                    Waiter.WaitOne();
-                    Waiter.Reset();
-                }
-         
-                result.message = $"Opened session with camera: {MainCamera.DeviceName}";
-                result.success= true;
-           
-            }catch  (Exception ex)
-            {
-                result.message = ex.Message;
-                result.success = false;
-            }
-            return result;
-        }
-
-        public async Task<object> EndSession(dynamic input)
-        {
-            LogMessage("Ending session");
-
-            var result = new NodeResult();
-
-            MainCamera?.Dispose();
-            MainCamera = null;
-            Api.Dispose();
-            Api = null;
-
-            result.message = "Camera session ended.";
-            result.success = true;
-            return result;
-        }
 
         public async Task<object> GetLastDownloadedImageFilename(dynamic input)
         {
@@ -354,43 +393,6 @@ namespace NodeBindings
 
 
             return result;
-        }
-
-        private static void APIHandler_CameraAdded(CanonAPI sender)
-        {
-            try
-            {
-                LogMessage("Camera added event received");
-                if (!RetrySession()) { LogMessage("Sorry, something went wrong. No camera");}
-            }
-            catch (Exception ex) { LogMessage("Error: " + ex.Message);}
-            finally { Waiter.Set(); }
-        }
-
-        private static void OpenSession(Camera camera)
-        {
-            LogMessage($"Opening session with camera: {camera.DeviceName}");
-            MainCamera = camera;
-            // TODO: Use individual lambda expressions for each action
-            // https://stackoverflow.com/questions/2465040/using-lambda-expressions-for-event-handlers
-            MainCamera.DownloadReady += MainCamera_DownloadReady;
-            MainCamera.LiveViewUpdated += MainCamera_LiveViewUpdated;
-            MainCamera.StateChanged += MainCamera_StateChanged;
-            MainCamera.OpenSession();
-            LogMessage($"Opened session with camera: {MainCamera.DeviceName}");
-        }
-
-        public static bool RetrySession()
-        {
-            LogMessage($"Opening session with camera: {MainCamera.DeviceName}");
-
-            List<Camera> cameras = Api.GetCameraList();
-            if (cameras.Count > 0)
-            {
-                OpenSession(cameras[0]);
-                return true;
-            }
-            else return false;
         }
 
         private static void MainCamera_LiveViewUpdated(Camera sender, Stream img)
