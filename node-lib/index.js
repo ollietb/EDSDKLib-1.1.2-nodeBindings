@@ -28,9 +28,7 @@ const bindPromisify = function(methodName) {
                     return;
                 }
 
-                if (result && result.success) {
-                    console.log(`Callback on success result: ${result.message}`, result);
-                } else {
+                if (!result || !result.success) {
                     console.log(`Callback on failure result: ${result.message}`, result);
                 }
                 resolve(result);

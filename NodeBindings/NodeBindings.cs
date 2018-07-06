@@ -41,6 +41,7 @@ namespace NodeBindings
         static string SaveDirectory;
         static string LastImageFileName;
         static bool TakePhotoSuccess = false;
+        static int LiveViewUpdates = 0;
 
         //buffer for preview images
         static MemoryStream PreviewBuffer;
@@ -50,16 +51,16 @@ namespace NodeBindings
             var result = new NodeResult(); 
             try
             {
-                Console.WriteLine("Attempting to set SaveDirectory to " + (string)input.outputPath);
+                LogMessage($"Setting output path to \"{input.outputPath}\"");
                 SaveDirectory = (string)input.outputPath;
-                result.message = "Set SaveDirectory to " + (string)input.outputPath;
+                result.message = "Set output path to " + (string)input.outputPath;
                 result.success = true;
             }
             catch (Exception ex){
                 //Can't use requested path, resetting to default
                 SaveDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "RemotePhoto");
-                Console.WriteLine(ex.Message.ToString());
-                Console.WriteLine("Can't use requested path, resetting to default:" + SaveDirectory.ToString());
+                LogMessage(ex.Message.ToString());
+                LogMessage("Can't use requested path, resetting to default:" + SaveDirectory.ToString());
                 result.message = ex.Message.ToString();
                 result.success = false;
             }
@@ -68,19 +69,23 @@ namespace NodeBindings
 
         public async Task<object> StartLiveView(dynamic input)
         {
+            LogMessage("Starting live view");
+
             NodeResult result = new NodeResult();
 
             try
             {
+                LiveViewUpdates = 0;
                 MainCamera.StartLiveView();
 
-                Console.WriteLine("Waiting for first live view...");
+                LogMessage("Waiting for first live view...");
                 LiveViewWaiter.WaitOne();
 
                 result.message = "Starting LiveView";
                 result.success = true;
             }
-            catch (Exception ex) {result.message="Error: " + ex.Message;
+            catch (Exception ex) {
+                result.message="Error: " + ex.Message;
                 result.success = false;
             }
             
@@ -89,6 +94,8 @@ namespace NodeBindings
 
         public async Task<object> StopLiveView(dynamic input)
         {
+            LogMessage("Stopping live view");
+
             NodeResult result = new NodeResult();
 
             try
@@ -108,6 +115,8 @@ namespace NodeBindings
 
         public async Task<object> TakePhoto(dynamic input)
         {
+            LogMessage("Taking photo");
+
             var result = new MediaResult();
             var maxTries = 5;
             var tries = 0;
@@ -138,7 +147,7 @@ namespace NodeBindings
                         throw new Exception($"Photo not taken in {tries} tries");
                     }
                     else {
-                        Console.WriteLine("Retrying to take photo");
+                        LogMessage("Retrying to take photo");
                         await Task.Delay(100);
                         tries++;
                     }
@@ -167,14 +176,14 @@ namespace NodeBindings
         {
             try
             {
-                Console.WriteLine("Starting image download...::"+Info.FileName);
+                LogMessage("Starting image download: " + Info.FileName);
                 await sender.DownloadFile(Info, SaveDirectory);
-                Console.WriteLine("Image downloading to " + Info.FileName);
+                LogMessage("Image downloaded to " + Info.FileName);
                 LastImageFileName = Info.FileName;
                 TakePhotoSuccess = true;
             }
             catch (Exception ex) {
-                Console.WriteLine("Error: " + ex.Message);
+                LogMessage("Error: " + ex.Message);
                 TakePhotoSuccess = false;
             }
             finally { TakePhotoWaiter.Set(); }
@@ -182,7 +191,7 @@ namespace NodeBindings
 
         private static void MainCamera_StateChanged(Camera sender, StateEventID eventID, uint parameter)
         {
-            Console.WriteLine("StateChanged "+ eventID);
+            LogMessage("StateChanged "+ eventID);
 
             if (eventID == StateEventID.CaptureError) {
                 TakePhotoSuccess = false;
@@ -192,6 +201,8 @@ namespace NodeBindings
 
         public async Task<object> StartVideo(dynamic input)
         {
+            LogMessage("Starting video capture");
+
             // needs live view on (at least in 70D)
             var result = new NodeResult();
 
@@ -212,6 +223,8 @@ namespace NodeBindings
 
         public async Task<object> StopVideo(dynamic input)
         {
+            LogMessage("Stopping video capture");
+
             var result = new MediaResult();
             try
             {
@@ -234,8 +247,10 @@ namespace NodeBindings
        
         public async Task<object> BeginSession(dynamic input)
         {
+            LogMessage("Beginning session");
+
             var result = new NodeResult();
-            
+
             try
             {
                 Waiter = new AutoResetEvent(false);
@@ -243,11 +258,11 @@ namespace NodeBindings
                 {
                     Api = new CanonAPI();
                 }
-                Console.WriteLine("APIHandler initialised");
+                LogMessage("APIHandler initialised");
                 List<Camera> cameras = Api.GetCameraList();
                 foreach (var camera in cameras)
                 {
-                    Console.WriteLine("APIHandler GetCameraList:" + camera);
+                    LogMessage("APIHandler GetCameraList:" + camera);
                 }
 
                 if (cameras.Count > 0)
@@ -256,7 +271,7 @@ namespace NodeBindings
                 }
                 else
                 {
-                    Console.WriteLine("No camera found. Please plug in camera");
+                    LogMessage("No camera found. Please plug in camera");
                     Api.CameraAdded += APIHandler_CameraAdded;
                     Waiter.WaitOne();
                     Waiter.Reset();
@@ -275,8 +290,10 @@ namespace NodeBindings
 
         public async Task<object> EndSession(dynamic input)
         {
+            LogMessage("Ending session");
+
             var result = new NodeResult();
-            
+
             MainCamera?.Dispose();
             MainCamera = null;
             Api.Dispose();
@@ -289,8 +306,10 @@ namespace NodeBindings
 
         public async Task<object> GetLastDownloadedImageFilename(dynamic input)
         {
+            LogMessage($"Getting last downloaded image file name \"{LastImageFileName}\"");
+
             var result = new NodeResult();
-            
+
             result.message = LastImageFileName;
             result.success = true;
             return result;
@@ -307,7 +326,7 @@ namespace NodeBindings
             }
             catch (Exception exp)
             {
-                Console.WriteLine(exp.Message);
+                LogMessage(exp.Message);
                 result.message = exp.Message;
                 result.success = false;
             }
@@ -319,14 +338,16 @@ namespace NodeBindings
         {
             var result = new NodeResult();
 
+            LogMessage($"Calling camera method: {input.method}");
+
             try
             {
                 typeof(Camera).GetMethod((string)input.method).Invoke(MainCamera, new object[] {});
-                result.message = $"CallCameraMethod: {input.method}";
+                result.message = $"CallCameraMethod: ";
                 result.success = true;
             }
             catch (Exception exp) {
-                Console.WriteLine(exp.Message);
+                LogMessage(exp.Message);
                 result.message = exp.Message;
                 result.success = false;
             }
@@ -339,16 +360,16 @@ namespace NodeBindings
         {
             try
             {
-                Console.WriteLine("Camera added event received");
-                if (!RetrySession()) { Console.WriteLine("Sorry, something went wrong. No camera");}
+                LogMessage("Camera added event received");
+                if (!RetrySession()) { LogMessage("Sorry, something went wrong. No camera");}
             }
-            catch (Exception ex) { Console.WriteLine("Error: " + ex.Message);}
+            catch (Exception ex) { LogMessage("Error: " + ex.Message);}
             finally { Waiter.Set(); }
         }
 
         private static void OpenSession(Camera camera)
         {
-            Console.WriteLine($"Opening session with camera: {camera.DeviceName}");
+            LogMessage($"Opening session with camera: {camera.DeviceName}");
             MainCamera = camera;
             // TODO: Use individual lambda expressions for each action
             // https://stackoverflow.com/questions/2465040/using-lambda-expressions-for-event-handlers
@@ -356,12 +377,12 @@ namespace NodeBindings
             MainCamera.LiveViewUpdated += MainCamera_LiveViewUpdated;
             MainCamera.StateChanged += MainCamera_StateChanged;
             MainCamera.OpenSession();
-            Console.WriteLine($"Opened session with camera: {MainCamera.DeviceName}");
+            LogMessage($"Opened session with camera: {MainCamera.DeviceName}");
         }
 
         public static bool RetrySession()
         {
-            Console.WriteLine($"Opening session with camera: {MainCamera.DeviceName}");
+            LogMessage($"Opening session with camera: {MainCamera.DeviceName}");
 
             List<Camera> cameras = Api.GetCameraList();
             if (cameras.Count > 0)
@@ -374,8 +395,15 @@ namespace NodeBindings
 
         private static void MainCamera_LiveViewUpdated(Camera sender, Stream img)
         {
+            LiveViewUpdates++;
+
+            if (LiveViewUpdates == 1 || LiveViewUpdates % 100 == 0)
+            {
+                // Log only every 100 updates
+                LogMessage($"LiveView updated #{LiveViewUpdates}");
+            }
+
             PreviewImageResult result = new PreviewImageResult();
-            Console.WriteLine("LiveView updated");
 
             try
             {
@@ -399,7 +427,7 @@ namespace NodeBindings
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error: " + ex.Message);
+                LogMessage("Error: " + ex.Message);
                 result.message = "Error: " + ex.Message;
                 result.success = false;
             }
@@ -407,6 +435,11 @@ namespace NodeBindings
             {
                 LiveViewWaiter.Set();
             }
+        }
+
+        private static void LogMessage(string message)
+        {
+            Console.WriteLine(String.Format("{0:s}", DateTime.Now) + " [CanonCameraV2] " + message);
         }
     }
 }
