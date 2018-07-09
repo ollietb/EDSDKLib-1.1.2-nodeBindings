@@ -1,6 +1,9 @@
-﻿using System;
+﻿#pragma warning disable CS1998
+
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using EdgeJs;
 using EOSDigital.API;
@@ -45,8 +48,9 @@ namespace NodeBindings
         static AutoResetEvent LiveViewWaiter = new AutoResetEvent(false);
         static AutoResetEvent DownloadReadyWaiter = new AutoResetEvent(false);
 
-        //buffer for preview images
+        // buffer for preview images
         static MemoryStream PreviewBuffer;
+        static MemoryStream TempPreviewBuffer;
 
         public async Task<object> BeginSession(dynamic input)
         {
@@ -176,13 +180,15 @@ namespace NodeBindings
             try
             {
                 LiveViewUpdates = 0;
+                LiveViewWaiter.Reset();
                 MainCamera.StartLiveView();
 
-                LogMessage("Waiting for first live view...");
+                LogMessage("Waiting for first live view");
                 LiveViewWaiter.WaitOne();
+                LogMessage("Live view started");
 
                 NodeResult result = new NodeResult();
-                result.message = "Starting LiveView";
+                result.message = "Live view started";
                 result.success = true;
 
                 return result;
@@ -197,13 +203,13 @@ namespace NodeBindings
         {
             LogMessage("Stopping live view");
 
-
             try
             {
                 MainCamera.StopLiveView();
+                LogMessage("Live view stopped");
 
                 NodeResult result = new NodeResult();
-                result.message = "Stopping LiveView";
+                result.message = "Live view stopped";
                 result.success = true;
 
                 return result;
@@ -235,10 +241,11 @@ namespace NodeBindings
 
                 await MainCamera.SetCapacity(4096, 999999999);
 
-                CaptureSuccess = false;
                 while (true) {
-                    await MainCamera.TakePhoto();
+                    CaptureSuccess = false;
 
+                    DownloadReadyWaiter.Reset();
+                    await MainCamera.TakePhoto();
                     // TODO: make it timeout
                     // https://stackoverflow.com/questions/22678428/any-way-to-trigger-timeout-on-waitone-immediately
                     DownloadReadyWaiter.WaitOne();
@@ -286,7 +293,10 @@ namespace NodeBindings
                 LogMessage("Error: " + ex.ToString());
                 CaptureSuccess = false;
             }
-            finally { DownloadReadyWaiter.Set(); }
+            finally
+            {
+                DownloadReadyWaiter.Set();
+            }
         }
 
         private static void MainCamera_StateChanged(Camera sender, StateEventID eventID, uint parameter)
@@ -315,10 +325,10 @@ namespace NodeBindings
 
                 return result;
             }
-            catch (Exception ex){
+            catch (Exception ex)
+            {
                 return HandleException(ex);
             }
-
         }
 
         public async Task<object> StopVideo(dynamic input)
@@ -332,6 +342,7 @@ namespace NodeBindings
             try
             {
                 bool save = true;
+                DownloadReadyWaiter.Reset();
                 MainCamera.StopFilming(save);
                 DownloadReadyWaiter.WaitOne();
 
@@ -457,10 +468,8 @@ namespace NodeBindings
             if (LiveViewUpdates == 1 || LiveViewUpdates % 100 == 0)
             {
                 // Log only every 100 updates
-                LogMessage($"LiveView updated #{LiveViewUpdates}");
+                LogMessage($"Live view updated #{LiveViewUpdates}");
             }
-
-            PreviewImageResult result = new PreviewImageResult();
 
             try
             {
@@ -476,11 +485,10 @@ namespace NodeBindings
 
                     JpegBitmapEncoder encoder = new JpegBitmapEncoder();
                     encoder.Frames.Add(BitmapFrame.Create((BitmapImage)EvfImage));
-                    PreviewBuffer = new MemoryStream();
-                    using (PreviewBuffer)
-                        encoder.Save(PreviewBuffer);
+                    TempPreviewBuffer = new MemoryStream();
+                    encoder.Save(TempPreviewBuffer);
+                    PreviewBuffer = TempPreviewBuffer;
                 }
-
             }
             catch (Exception ex)
             {

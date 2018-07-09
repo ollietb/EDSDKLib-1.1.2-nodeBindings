@@ -1,3 +1,6 @@
+[2.0.0]
+- Release first stable version
+
 [25/04/2017]
 - Retry TakePhoto when it fails with CaptureError state change
 - Return path to downloaded photo or video

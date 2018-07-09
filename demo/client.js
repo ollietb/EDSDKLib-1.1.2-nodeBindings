@@ -22,6 +22,7 @@ socket.on('preview', data => {
 });
 
 function startPreview() {
+    previewContext.clearRect(0, 0, preview.width, preview.height);
     console.log('Starting preview');
     socket.emit('startPreview');
 }

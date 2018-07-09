@@ -1,6 +1,6 @@
 {
   "name": "canon-camera-v2",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Wrapper for calling C# EDSDKAPI from node",
   "main": "node-lib/index.js",
   "scripts": {
@@ -12,7 +12,7 @@
     "node",
     "edsdkapi"
   ],
-  "author": "Alias Cummins",
+  "author": "EventsTag",
   "license": "ISC",
   "dependencies": {
     "edge": "git+ssh://git@github.com:CrowdReactive/edge.git#master",

@@ -14,10 +14,12 @@ const bindMethodSignature = function(methodName) {
 
 /**
  * @param {string} methodName
+ * @param {function} [successCallback]
  * @return {function(*=): Promise}
  */
-const bindPromisify = function(methodName) {
+const bindPromisify = function(methodName, successCallback) {
     const func = bindMethodSignature(methodName);
+    successCallback = successCallback || (result => result);
 
     return (opts = {}) => {
         return new Promise((resolve, reject) => {
@@ -33,7 +35,8 @@ const bindPromisify = function(methodName) {
                 }
                 resolve(result);
             });
-        });
+        })
+            .then(successCallback);
     };
 };
 
