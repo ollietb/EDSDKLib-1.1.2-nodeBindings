@@ -1,3 +1,6 @@
+[2.0.1]
+- Make it work with Canon EOS M50
+
 [2.0.0]
 - Release first stable version
 

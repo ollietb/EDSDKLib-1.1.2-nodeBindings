@@ -318,9 +318,10 @@ namespace NodeBindings
             try
             {
                 MainCamera.StartFilming(true);
+                LogMessage("Started video capture");
 
                 var result = new NodeResult();
-                result.message = "Started recording video.";
+                result.message = "Started recording video";
                 result.success = true;
 
                 return result;
@@ -341,9 +342,8 @@ namespace NodeBindings
 
             try
             {
-                bool save = true;
                 DownloadReadyWaiter.Reset();
-                MainCamera.StopFilming(save);
+                MainCamera.StopFilming(saveFilm: true, stopLiveView: false);
                 DownloadReadyWaiter.WaitOne();
 
                 var result = new NodeResult();
@@ -381,7 +381,7 @@ namespace NodeBindings
                 string downloadedFilePath = await DownloadFile(LastCapturedFileInfo);
 
                 var result = new MediaResult();
-                result.message = "File downloaded";
+                result.message = "Downloaded file";
                 result.path = downloadedFilePath;
                 result.success = true;
 
@@ -397,7 +397,9 @@ namespace NodeBindings
         public static async Task<string> DownloadFile(DownloadInfo downloadInfo)
         {
             string downloadedFilePath = Path.Combine(SaveDirectory, downloadInfo.FileName);
-            LogMessage($"Downloading file to \"{downloadedFilePath}\"");
+            double sizeInMb = (downloadInfo.Size / 1024f) / 1024f;
+            string sizeInMbString = String.Format("{0:0.00}", sizeInMb);
+            LogMessage($"Downloading file ({sizeInMbString}MB) to \"{downloadedFilePath}\"");
             await MainCamera.DownloadFile(downloadInfo, SaveDirectory);
             LogMessage($"File downloaded to \"{downloadedFilePath}\"");
 

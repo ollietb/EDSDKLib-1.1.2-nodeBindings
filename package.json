@@ -1,6 +1,6 @@
 {
   "name": "canon-camera-v2",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Wrapper for calling C# EDSDKAPI from node",
   "main": "node-lib/index.js",
   "scripts": {
