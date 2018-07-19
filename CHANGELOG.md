@@ -1,3 +1,6 @@
+[2.1.1]
+- Reject promise if failed response returned
+
 [2.1.0]
 - Delete video after downloading it from the camera
 - Add methods to get all files from the camera

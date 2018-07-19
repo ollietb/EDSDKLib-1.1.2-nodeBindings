@@ -32,7 +32,10 @@ const bindPromisify = function(methodName, successCallback) {
 
                 if (!result || !result.success) {
                     console.log(`Callback on failure result: ${result.message}`, result);
+                    reject(new Error(`Failure: ${result.message}`));
+                    return;
                 }
+
                 resolve(result);
             });
         })
