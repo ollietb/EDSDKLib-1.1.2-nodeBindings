@@ -10,7 +10,6 @@ const {
     stopLiveView,
     startVideo,
     stopVideo,
-    getLastCapturedFileName,
     getPreviewImage,
     callCameraMethod,
 } = require('./index');

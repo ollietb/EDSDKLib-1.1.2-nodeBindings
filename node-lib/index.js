@@ -48,7 +48,6 @@ const startLiveView = bindPromisify('StartLiveView');
 const stopLiveView = bindPromisify('StopLiveView');
 const startVideo = bindPromisify('StartVideo');
 const stopVideo = bindPromisify('StopVideo');
-const getLastCapturedFileName = bindPromisify('GetLastCapturedFileName');
 const downloadLastCapturedFile = bindPromisify('DownloadLastCapturedFile');
 const getPreviewImage = bindPromisify('GetPreviewImage');
 const callCameraMethod = bindPromisify('CallCameraMethod');
@@ -62,7 +61,6 @@ module.exports = {
     stopLiveView,
     startVideo,
     stopVideo,
-    getLastCapturedFileName,
     downloadLastCapturedFile,
     getPreviewImage,
     callCameraMethod,

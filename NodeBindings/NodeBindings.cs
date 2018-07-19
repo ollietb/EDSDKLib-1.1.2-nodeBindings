@@ -62,6 +62,7 @@ namespace NodeBindings
                 if (Api == null )
                 {
                     Api = new CanonAPI();
+                    Api.CameraAdded += APIHandler_CameraAdded;
                 }
 
                 LogMessage("APIHandler initialised");
@@ -79,10 +80,10 @@ namespace NodeBindings
                 else
                 {
                     LogMessage("No camera found. Please plug in camera");
-                    Api.CameraAdded += APIHandler_CameraAdded;
                     CameraAddedWaiter.WaitOne();
                     CameraAddedWaiter.Reset();
                 }
+
 
                 var result = new NodeResult();
                 result.message = $"Opened session with camera: {MainCamera.DeviceName}";
@@ -169,8 +170,39 @@ namespace NodeBindings
                LogMessage("Camera added event received");
                if (!RetrySession()) { LogMessage("Sorry, something went wrong. No camera");}
            }
-           catch (Exception ex) { LogMessage("Error: " + ex.ToString());}
-           finally { CameraAddedWaiter.Set(); }
+           catch (Exception ex)
+           {
+               LogMessage("Error: " + ex.ToString());
+           }
+           finally
+           {
+               CameraAddedWaiter.Set();
+           }
+        }
+
+        private static void EnsureCameraSessionOpened() {
+            if (MainCamera == null) {
+                throw new Exception("Camera object not initialised");
+            }
+
+            if (MainCamera.IsDisposed) {
+                throw new Exception("Camera object disposed");
+            }
+
+            if (!MainCamera.SessionOpen) {
+                throw new Exception("Camera session not yet opened");
+            }
+        }
+
+        private static bool IsCameraSessionOpened()
+        {
+            try {
+                EnsureCameraSessionOpened();
+                return true;
+            } catch (Exception ex) {
+                LogMessage(ex.ToString());
+                return false;
+            }
         }
 
         public async Task<object> StartLiveView(dynamic input)
@@ -179,6 +211,8 @@ namespace NodeBindings
 
             try
             {
+                EnsureCameraSessionOpened();
+
                 LiveViewUpdates = 0;
                 LiveViewWaiter.Reset();
                 MainCamera.StartLiveView();
@@ -205,6 +239,8 @@ namespace NodeBindings
 
             try
             {
+                EnsureCameraSessionOpened();
+
                 MainCamera.StopLiveView();
                 LogMessage("Live view stopped");
 
@@ -230,6 +266,8 @@ namespace NodeBindings
 
             try
             {
+                EnsureCameraSessionOpened();
+
                 MainCamera.SaveTo = SaveTo.Host;
 
                 if (MainCamera.IsLiveViewOn) {
@@ -276,7 +314,7 @@ namespace NodeBindings
             }
             finally
             {
-                if (shouldRestartLiveView) {
+                if (shouldRestartLiveView && IsCameraSessionOpened()) {
                     MainCamera.StartLiveView();
                 }
             }
@@ -307,16 +345,23 @@ namespace NodeBindings
                 CaptureSuccess = false;
                 DownloadReadyWaiter.Set();
             }
+
+            if (eventID == StateEventID.Shutdown) {
+                MainCamera = null;
+            }
         }
 
         public async Task<object> StartVideo(dynamic input)
         {
             LogMessage("Starting video capture");
 
-            // needs live view on (at least in 70D)
 
             try
             {
+                EnsureCameraSessionOpened();
+
+                // TODO: Start live view if needed by camera
+
                 MainCamera.StartFilming(true);
                 LogMessage("Started video capture");
 
@@ -342,6 +387,8 @@ namespace NodeBindings
 
             try
             {
+                EnsureCameraSessionOpened();
+
                 DownloadReadyWaiter.Reset();
                 MainCamera.StopFilming(saveFilm: true, stopLiveView: false);
                 DownloadReadyWaiter.WaitOne();
@@ -358,7 +405,7 @@ namespace NodeBindings
             }
             finally
             {
-                if (!shouldRestartLiveView) {
+                if (!shouldRestartLiveView && IsCameraSessionOpened()) {
                     MainCamera.StopLiveView();
                 }
             }
@@ -382,6 +429,8 @@ namespace NodeBindings
 
             try
             {
+                EnsureCameraSessionOpened();
+
                 string downloadedFilePath = await DownloadFile(LastCapturedFileInfo);
 
                 LogMessage("Last captured file downloaded");
@@ -483,32 +532,13 @@ namespace NodeBindings
 
             return fileEntries.ToArray();
         }
-
-        public async Task<object> GetLastCapturedFileName(dynamic input)
-        {
-            LogMessage("Getting last captured file name");
-
-            var result = new NodeResult();
-
-            if (LastCapturedFileInfo == null) {
-                result.message = "No file has been captured yet";
-                result.success = false;
-
-                return result;
-            }
-
-            string fileName = LastCapturedFileInfo.FileName;
-            LogMessage($"Last captured file name \"{fileName}\"");
-
-            result.message = fileName;
-            result.success = true;
-            return result;
-        }
       
         public async Task<object> GetPreviewImage(dynamic input)
         {
             try
             {
+                EnsureCameraSessionOpened();
+
                 var result = new PreviewImageResult();
                 result.bitmap = PreviewBuffer.GetBuffer();
                 result.message = "Preview Image retrieved from buffer";
@@ -528,6 +558,8 @@ namespace NodeBindings
 
             try
             {
+                EnsureCameraSessionOpened();
+
                 typeof(Camera).GetMethod((string)input.method).Invoke(MainCamera, new object[] {});
 
                 var result = new NodeResult();

@@ -1,6 +1,7 @@
 [2.1.0]
 - Delete video after downloading it from the camera
 - Add methods to get all files from the camera
+- Handle errors better when camera is not connected / switched off
 
 [2.0.1]
 - Make it work with Canon EOS M50
