@@ -368,6 +368,10 @@ namespace NodeBindings
         {
             LogMessage($"Downloading last captured file");
 
+             bool deleteFile = HasInputValue(input, "deleteFile")
+                ? (bool)input.deleteFile
+                : true;
+
             if (LastCapturedFileInfo == null) {
                 var result = new NodeResult();
                 result.message = "No file has been captured yet";
@@ -379,6 +383,12 @@ namespace NodeBindings
             try
             {
                 string downloadedFilePath = await DownloadFile(LastCapturedFileInfo);
+
+                LogMessage("Last captured file downloaded");
+
+                if (deleteFile) {
+                    await DeleteLastCapturedFile();
+                }
 
                 var result = new MediaResult();
                 result.message = "Downloaded file";
@@ -399,11 +409,79 @@ namespace NodeBindings
             string downloadedFilePath = Path.Combine(SaveDirectory, downloadInfo.FileName);
             double sizeInMb = (downloadInfo.Size / 1024f) / 1024f;
             string sizeInMbString = String.Format("{0:0.00}", sizeInMb);
+
             LogMessage($"Downloading file ({sizeInMbString}MB) to \"{downloadedFilePath}\"");
+
             await MainCamera.DownloadFile(downloadInfo, SaveDirectory);
+
             LogMessage($"File downloaded to \"{downloadedFilePath}\"");
 
             return downloadedFilePath;
+        }
+
+        public static async Task DeleteLastCapturedFile()
+        {
+            LogMessage("Deleting last captured file");
+
+            if (LastCapturedFileInfo == null) {
+                LogMessage("No reference to last captured file");
+                return;
+            }
+
+            CameraFileEntry lastCaptureFileEntry = await GetLastCapturedFileEntry();
+
+            LogMessage($"Last captured file \"{lastCaptureFileEntry.Name}\"");
+
+            CameraFileEntry[] filesToDelete = { lastCaptureFileEntry };
+
+            await MainCamera.DeleteFiles(filesToDelete);
+            LastCapturedFileInfo = null;
+
+            LogMessage($"Last captured file \"{lastCaptureFileEntry.Name}\" deleted");
+        }
+
+        public static async Task<CameraFileEntry[]> GetAllFiles()
+        {
+            CameraFileEntry rootFileEntry = await MainCamera.GetAllEntries();
+            CameraFileEntry[] fileEntries = GetAllFilesFromFolderOrVolume(rootFileEntry);
+
+            return fileEntries;
+        }
+
+        public static async Task<CameraFileEntry> GetLastCapturedFileEntry()
+        {
+            if (LastCapturedFileInfo == null) {
+                return null;
+            }
+
+            CameraFileEntry[] fileEntries = await GetAllFiles();
+
+            foreach (CameraFileEntry fileEntry in fileEntries) {
+                if (LastCapturedFileInfo.FileName == fileEntry.Name) {
+                    return fileEntry;
+                }
+            }
+
+            return null;
+        }
+
+        public static CameraFileEntry[] GetAllFilesFromFolderOrVolume(CameraFileEntry fileEntry)
+        {
+            List<CameraFileEntry> fileEntries = new List<CameraFileEntry>();
+
+            if (!fileEntry.IsFolder && !fileEntry.IsVolume) {
+                fileEntries.Add(fileEntry);
+
+                return fileEntries.ToArray();
+            }
+
+            if (fileEntry.Entries != null) {
+                foreach (CameraFileEntry subFileEntry in fileEntry.Entries) {
+                    fileEntries.AddRange(GetAllFilesFromFolderOrVolume(subFileEntry));
+                }
+            }
+
+            return fileEntries.ToArray();
         }
 
         public async Task<object> GetLastCapturedFileName(dynamic input)
